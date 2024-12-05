@@ -7,4 +7,6 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 add_compile_options(-fsanitize=address -O2 -Wall)
 add_link_options(-fsanitize=address)
 
-add_executable(main main.cpp)
+file(GLOB SourceFiles src/*.cpp)
+add_executable(main ${SourceFiles})
+target_include_directories(main PRIVATE include)
