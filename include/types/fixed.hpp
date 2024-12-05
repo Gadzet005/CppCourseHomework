@@ -52,6 +52,13 @@ Fixed abs(Fixed x) {
     return x;
 }
 
-ostream &operator<<(ostream &out, Fixed x) {
+ostream &operator<<(ostream &out, const Fixed &x) {
     return out << x.v / (double)(1 << 16);
+}
+
+istream &operator>>(istream &in, Fixed &x) {
+    double v;
+    in >> v;
+    x = Fixed(v);
+    return in;
 }

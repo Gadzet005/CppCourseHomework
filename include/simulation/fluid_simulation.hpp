@@ -10,13 +10,16 @@ constexpr unsigned rhoSize = 256;
 constexpr std::array<pair<int, int>, 4> deltas{
     {{-1, 0}, {1, 0}, {0, -1}, {0, 1}}};
 
-template <unsigned Width, unsigned Height>
+template <size_t H, size_t W>
 class FluidSimulation {
 public:
-    FluidSimulation(char field[Width][Height + 1], Fixed rho[rhoSize], Fixed g)
+    static constexpr size_t Height = H;
+    static constexpr size_t Width = W;
+
+    FluidSimulation(char field[Height][Width + 1], Fixed rho[rhoSize], Fixed g)
         : g(g) {
-        for (size_t x = 0; x < Width; ++x) {
-            for (size_t y = 0; y < Height; ++y) {
+        for (size_t x = 0; x < Height; ++x) {
+            for (size_t y = 0; y < Width; ++y) {
                 if (field[x][y] == '#') continue;
                 for (auto [dx, dy] : deltas) {
                     dirs[x][y] += (field[x + dx][y + dy] != '#');
@@ -24,15 +27,15 @@ public:
             }
         }
 
-        memcpy(this->field, field, Width * (Height + 1));
+        memcpy(this->field, field, Height * (Width + 1));
         memcpy(this->rho, rho, rhoSize);
     }
 
     bool step() {
         Fixed total_delta_p = 0;
         // Apply external forces
-        for (size_t x = 0; x < Width; ++x) {
-            for (size_t y = 0; y < Height; ++y) {
+        for (size_t x = 0; x < Height; ++x) {
+            for (size_t y = 0; y < Width; ++y) {
                 if (field[x][y] == '#') continue;
                 if (field[x + 1][y] != '#') velocity.add(x, y, 1, 0, g);
             }
@@ -40,8 +43,8 @@ public:
 
         // Apply forces from p
         memcpy(old_p, p, sizeof(p));
-        for (size_t x = 0; x < Width; ++x) {
-            for (size_t y = 0; y < Height; ++y) {
+        for (size_t x = 0; x < Height; ++x) {
+            for (size_t y = 0; y < Width; ++y) {
                 if (field[x][y] == '#') continue;
                 for (auto [dx, dy] : deltas) {
                     int nx = x + dx, ny = y + dy;
@@ -70,8 +73,8 @@ public:
         do {
             UT += 2;
             prop = 0;
-            for (size_t x = 0; x < Width; ++x) {
-                for (size_t y = 0; y < Height; ++y) {
+            for (size_t x = 0; x < Height; ++x) {
+                for (size_t y = 0; y < Width; ++y) {
                     if (field[x][y] != '#' && last_use[x][y] != UT) {
                         auto [t, local_prop, _] = propagate_flow(x, y, 1);
                         if (t > 0) {
@@ -83,8 +86,8 @@ public:
         } while (prop);
 
         // Recalculate p with kinetic energy
-        for (size_t x = 0; x < Width; ++x) {
-            for (size_t y = 0; y < Height; ++y) {
+        for (size_t x = 0; x < Height; ++x) {
+            for (size_t y = 0; y < Width; ++y) {
                 if (field[x][y] == '#') continue;
                 for (auto [dx, dy] : deltas) {
                     auto old_v = velocity.get(x, y, dx, dy);
@@ -108,8 +111,8 @@ public:
 
         UT += 2;
         prop = false;
-        for (size_t x = 0; x < Width; ++x) {
-            for (size_t y = 0; y < Height; ++y) {
+        for (size_t x = 0; x < Height; ++x) {
+            for (size_t y = 0; y < Width; ++y) {
                 if (field[x][y] != '#' && last_use[x][y] != UT) {
                     if (random01() < move_prob(x, y)) {
                         prop = true;
@@ -125,14 +128,14 @@ public:
     }
 
     void print_field() {
-        for (size_t x = 0; x < Width; ++x) {
+        for (size_t x = 0; x < Height; ++x) {
             cout << field[x] << "\n";
         }
     }
 
 private:
     struct VectorField {
-        array<Fixed, deltas.size()> v[Width][Height];
+        array<Fixed, deltas.size()> v[Height][Width];
         Fixed &add(int x, int y, int dx, int dy, Fixed dv) {
             return get(x, y, dx, dy) += dv;
         }
@@ -159,14 +162,14 @@ private:
     Fixed rho[rhoSize];
     Fixed g;
 
-    char field[Width][Height + 1]{};
+    char field[Height][Width + 1];
 
-    Fixed p[Width][Height]{}, old_p[Width][Height];
+    Fixed p[Height][Width]{}, old_p[Height][Width];
 
     VectorField velocity{}, velocity_flow{};
-    int last_use[Width][Height]{};
+    int last_use[Height][Width]{};
     int UT = 0;
-    int dirs[Width][Height]{};
+    int dirs[Height][Width]{};
 
     mt19937 rnd = mt19937(1337);
 
@@ -308,3 +311,41 @@ private:
         return ret;
     }
 };
+
+template <size_t Height, size_t Width>
+FluidSimulation<Height, Width> load_from_file(const string &path) {
+    ifstream input;
+
+    input.open(path);
+    if (!input.is_open()) {
+        throw runtime_error("Unable to open file");
+    }
+
+    Fixed g;
+    input >> g;
+
+    size_t rhoCount;
+    input >> rhoCount;
+
+    Fixed rho[rhoSize];
+    for (size_t i = 0; i < rhoCount; ++i) {
+        input.ignore(numeric_limits<streamsize>::max(), '\n');
+        char c = input.get();
+        input >> rho[static_cast<size_t>(c)];
+    }
+
+    size_t width, height;
+    input >> width >> height;
+
+    input.ignore(numeric_limits<streamsize>::max(), '\n');
+    char field[Height][Width + 1] = {};
+    for (size_t x = 0; x < Height; ++x) {
+        for (size_t y = 0; y < Width; ++y) {
+            field[x][y] = input.get();
+        }
+        field[x][Width] = 0;
+        input.get();
+    }
+
+    return FluidSimulation<Height, Width>(field, rho, g);
+}
