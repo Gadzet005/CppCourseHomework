@@ -69,3 +69,4 @@ _deps
 .ionide
 
 /build
+/env

@@ -10,7 +10,8 @@ constexpr unsigned rhoSize = 256;
 constexpr std::array<pair<int, int>, 4> deltas{
     {{-1, 0}, {1, 0}, {0, -1}, {0, 1}}};
 
-template <size_t H, size_t W>
+template <size_t H, size_t W, typename PType, typename VelocityType,
+          typename VelocityFlowType>
 class FluidSimulation {
 public:
     static constexpr size_t Height = H;
@@ -134,13 +135,15 @@ public:
     }
 
 private:
+    template <typename T>
     struct VectorField {
-        array<Fixed, deltas.size()> v[Height][Width];
-        Fixed &add(int x, int y, int dx, int dy, Fixed dv) {
+        array<T, deltas.size()> v[Height][Width];
+
+        T &add(int x, int y, int dx, int dy, T dv) {
             return get(x, y, dx, dy) += dv;
         }
 
-        Fixed &get(int x, int y, int dx, int dy) {
+        T &get(int x, int y, int dx, int dy) {
             size_t i = ranges::find(deltas, pair(dx, dy)) - deltas.begin();
             assert(i < deltas.size());
             return v[x][y][i];
@@ -149,8 +152,8 @@ private:
 
     struct ParticleParams {
         char type;
-        Fixed cur_p;
-        array<Fixed, deltas.size()> v;
+        PType cur_p;
+        array<VelocityType, deltas.size()> v;
 
         void swap_with(FluidSimulation &sim, int x, int y) {
             swap(sim.field[x][y], type);
@@ -164,12 +167,14 @@ private:
 
     char field[Height][Width + 1];
 
-    Fixed p[Height][Width]{}, old_p[Height][Width];
+    PType p[Height][Width] = {}, old_p[Height][Width];
 
-    VectorField velocity{}, velocity_flow{};
-    int last_use[Height][Width]{};
+    VectorField<VelocityType> velocity = {};
+    VectorField<VelocityFlowType> velocity_flow = {};
+
+    int last_use[Height][Width] = {};
     int UT = 0;
-    int dirs[Height][Width]{};
+    int dirs[Height][Width] = {};
 
     mt19937 rnd = mt19937(1337);
 
@@ -312,8 +317,10 @@ private:
     }
 };
 
-template <size_t Height, size_t Width>
-FluidSimulation<Height, Width> load_from_file(const string &path) {
+template <size_t Height, size_t Width, typename PType, typename VelocityType,
+          typename VelocityFlowType>
+FluidSimulation<Height, Width, PType, VelocityType, VelocityFlowType>
+load_from_file(const string &path) {
     ifstream input;
 
     input.open(path);
@@ -347,5 +354,6 @@ FluidSimulation<Height, Width> load_from_file(const string &path) {
         input.get();
     }
 
-    return FluidSimulation<Height, Width>(field, rho, g);
+    return FluidSimulation<Height, Width, PType, VelocityType,
+                           VelocityFlowType>(field, rho, g);
 }
