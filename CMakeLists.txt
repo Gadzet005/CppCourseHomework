@@ -10,3 +10,6 @@ add_link_options(-fsanitize=address)
 file(GLOB_RECURSE SourceFiles src/*.cpp)
 add_executable(main ${SourceFiles})
 target_include_directories(main PRIVATE include)
+
+target_compile_definitions(main PUBLIC TYPES=${TYPES})
+target_compile_definitions(main PUBLIC SIZES=${SIZES})
