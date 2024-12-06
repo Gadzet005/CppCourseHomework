@@ -17,7 +17,8 @@ public:
     static constexpr size_t Height = H;
     static constexpr size_t Width = W;
 
-    FluidSimulation(char field[Height][Width + 1], Fixed rho[rhoSize], Fixed g)
+    FluidSimulation(char field[Height][Width + 1], Fixed<> rho[rhoSize],
+                    Fixed<> g)
         : g(g) {
         for (size_t x = 0; x < Height; ++x) {
             for (size_t y = 0; y < Width; ++y) {
@@ -33,7 +34,7 @@ public:
     }
 
     bool step() {
-        Fixed total_delta_p = 0;
+        Fixed<> total_delta_p = 0;
         // Apply external forces
         for (size_t x = 0; x < Height; ++x) {
             for (size_t y = 0; y < Width; ++y) {
@@ -53,14 +54,17 @@ public:
                         auto delta_p = old_p[x][y] - old_p[nx][ny];
                         auto force = delta_p;
                         auto &contr = velocity.get(nx, ny, -dx, -dy);
-                        if (contr * rho[(int)field[nx][ny]] >= force) {
-                            contr -= force / rho[(int)field[nx][ny]];
+                        if (contr * VelocityType(rho[(int)field[nx][ny]]) >=
+                            force) {
+                            contr -=
+                                force / VelocityType(rho[(int)field[nx][ny]]);
                             continue;
                         }
-                        force -= contr * rho[(int)field[nx][ny]];
+                        force -= contr * VelocityType(rho[(int)field[nx][ny]]);
                         contr = 0;
-                        velocity.add(x, y, dx, dy,
-                                     force / rho[(int)field[x][y]]);
+                        velocity.add(
+                            x, y, dx, dy,
+                            force / VelocityType(rho[(int)field[x][y]]));
                         p[x][y] -= force / dirs[x][y];
                         total_delta_p -= force / dirs[x][y];
                     }
@@ -96,8 +100,9 @@ public:
                     if (old_v > 0) {
                         assert(new_v <= old_v);
                         velocity.get(x, y, dx, dy) = new_v;
-                        auto force = (old_v - new_v) * rho[(int)field[x][y]];
-                        if (field[x][y] == '.') force *= 0.8;
+                        auto force = (old_v - new_v) *
+                                     VelocityType(rho[(int)field[x][y]]);
+                        if (field[x][y] == '.') force *= Fixed(0.8);
                         if (field[x + dx][y + dy] == '#') {
                             p[x][y] += force / dirs[x][y];
                             total_delta_p += force / dirs[x][y];
@@ -162,8 +167,8 @@ private:
         }
     };
 
-    Fixed rho[rhoSize];
-    Fixed g;
+    Fixed<> rho[rhoSize];
+    Fixed<> g;
 
     char field[Height][Width + 1];
 
@@ -178,10 +183,10 @@ private:
 
     mt19937 rnd = mt19937(1337);
 
-    Fixed random01() { return Fixed::from_raw((rnd() & ((1 << 16) - 1))); }
+    Fixed<> random01() { return Fixed<>::from_raw((rnd() & ((1 << 16) - 1))); }
 
-    Fixed move_prob(int x, int y) {
-        Fixed sum = 0;
+    Fixed<> move_prob(int x, int y) {
+        Fixed<> sum = 0;
         for (size_t i = 0; i < deltas.size(); ++i) {
             auto [dx, dy] = deltas[i];
             int nx = x + dx, ny = y + dy;
@@ -197,9 +202,10 @@ private:
         return sum;
     }
 
-    tuple<Fixed, bool, pair<int, int>> propagate_flow(int x, int y, Fixed lim) {
+    tuple<Fixed<>, bool, pair<int, int>> propagate_flow(int x, int y,
+                                                        Fixed<> lim) {
         last_use[x][y] = UT - 1;
-        Fixed ret = 0;
+        Fixed<> ret = 0;
         for (auto [dx, dy] : deltas) {
             int nx = x + dx, ny = y + dy;
             if (field[nx][ny] != '#' && last_use[nx][ny] < UT) {
@@ -209,7 +215,7 @@ private:
                     continue;
                 }
                 // assert(v >= velocity_flow.get(x, y, dx, dy));
-                auto vp = min(lim, cap - flow);
+                auto vp = min(VelocityType(lim), cap - flow);
                 if (last_use[nx][ny] == UT - 1) {
                     velocity_flow.add(x, y, dx, dy, vp);
                     last_use[x][y] = UT;
@@ -263,8 +269,8 @@ private:
         bool ret = false;
         int nx = -1, ny = -1;
         do {
-            std::array<Fixed, deltas.size()> tres;
-            Fixed sum = 0;
+            std::array<Fixed<>, deltas.size()> tres;
+            Fixed<> sum = 0;
             for (size_t i = 0; i < deltas.size(); ++i) {
                 auto [dx, dy] = deltas[i];
                 int nx = x + dx, ny = y + dy;
@@ -285,7 +291,7 @@ private:
                 break;
             }
 
-            Fixed p = random01() * sum;
+            Fixed<> p = random01() * sum;
             size_t d = std::ranges::upper_bound(tres, p) - tres.begin();
 
             auto [dx, dy] = deltas[d];
@@ -328,13 +334,13 @@ load_from_file(const string &path) {
         throw runtime_error("Unable to open file");
     }
 
-    Fixed g;
+    Fixed<> g;
     input >> g;
 
     size_t rhoCount;
     input >> rhoCount;
 
-    Fixed rho[rhoSize];
+    Fixed<> rho[rhoSize];
     for (size_t i = 0; i < rhoCount; ++i) {
         input.ignore(numeric_limits<streamsize>::max(), '\n');
         char c = input.get();

@@ -11,18 +11,18 @@ struct Type {
     TypeId typeId;
     size_t n, k;
 
-    Type(TypeId id) : typeId(id) {}
-    Type(TypeId id, size_t n, size_t k) : typeId(id), n(n), k(k) {}
+    constexpr Type(TypeId id) : typeId(id) {}
+    constexpr Type(TypeId id, size_t n, size_t k) : typeId(id), n(n), k(k) {}
 
-    static Type doubleType() { return Type(TypeId::doubleType); }
+    static constexpr Type doubleType() { return Type(TypeId::doubleType); }
 
-    static Type floatType() { return Type(TypeId::floatType); }
+    static constexpr Type floatType() { return Type(TypeId::floatType); }
 
-    static Type fixedType(size_t n, size_t k) {
+    static constexpr Type fixedType(size_t n, size_t k) {
         return Type(TypeId::fixedType, n, k);
     }
 
-    static Type FastFixed(size_t n, size_t k) {
+    static constexpr Type FastFixed(size_t n, size_t k) {
         return Type(TypeId::fixedType, n, k);
     }
 };

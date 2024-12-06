@@ -23,7 +23,9 @@ int main(int argc, char* argv[]) {
         return 0;
     }
 
-    auto simulation = load_from_file<N, M, Fixed, Fixed, Fixed>(args.filePath);
+    auto simulation =
+        load_from_file<N, M, Fixed<64, 32>, Fixed<64, 32>, Fixed<64, 32>>(
+            args.filePath);
 
     for (size_t i = 0; i < T; ++i) {
         bool res = simulation.step();
