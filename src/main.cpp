@@ -1,10 +1,8 @@
-#include <bits/stdc++.h>
-
 #include <cli/console_args_parser.hpp>
 #include <iostream>
 #include <simulation/fluid_simulation.hpp>
 #include <simulation/macro.hpp>
-#include <types/fixed.hpp>
+#include <types/fast_fixed.hpp>
 #include <types/macro.hpp>
 
 using namespace std;
@@ -23,9 +21,8 @@ int main(int argc, char* argv[]) {
         return 0;
     }
 
-    auto simulation =
-        load_from_file<N, M, Fixed<64, 32>, Fixed<64, 32>, Fixed<64, 32>>(
-            args.filePath);
+    auto simulation = load_from_file<N, M, FastFixed<64, 16>, FastFixed<64, 16>,
+                                     FastFixed<64, 16>>(args.filePath);
 
     for (size_t i = 0; i < T; ++i) {
         bool res = simulation.step();

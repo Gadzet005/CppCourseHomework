@@ -56,15 +56,13 @@ public:
                         auto &contr = velocity.get(nx, ny, -dx, -dy);
                         if (contr * VelocityType(rho[(int)field[nx][ny]]) >=
                             force) {
-                            contr -=
-                                force / VelocityType(rho[(int)field[nx][ny]]);
+                            contr -= force / PType(rho[(int)field[nx][ny]]);
                             continue;
                         }
                         force -= contr * VelocityType(rho[(int)field[nx][ny]]);
                         contr = 0;
-                        velocity.add(
-                            x, y, dx, dy,
-                            force / VelocityType(rho[(int)field[x][y]]));
+                        velocity.add(x, y, dx, dy,
+                                     force / PType(rho[(int)field[x][y]]));
                         p[x][y] -= force / dirs[x][y];
                         total_delta_p -= force / dirs[x][y];
                     }
@@ -100,7 +98,7 @@ public:
                     if (old_v > 0) {
                         assert(new_v <= old_v);
                         velocity.get(x, y, dx, dy) = new_v;
-                        auto force = (old_v - new_v) *
+                        auto force = (old_v - VelocityType(new_v)) *
                                      VelocityType(rho[(int)field[x][y]]);
                         if (field[x][y] == '.') force *= Fixed(0.8);
                         if (field[x + dx][y + dy] == '#') {
@@ -215,7 +213,7 @@ private:
                     continue;
                 }
                 // assert(v >= velocity_flow.get(x, y, dx, dy));
-                auto vp = min(VelocityType(lim), cap - flow);
+                auto vp = min(VelocityType(lim), cap - VelocityType(flow));
                 if (last_use[nx][ny] == UT - 1) {
                     velocity_flow.add(x, y, dx, dy, vp);
                     last_use[x][y] = UT;
