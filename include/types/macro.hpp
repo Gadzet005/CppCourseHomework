@@ -1,7 +1,9 @@
 #pragma once
 
-#define FLOAT (cout << "float used" << endl)
-#define DOUBLE (cout << "double used" << endl)
-#define FIXED(n, k) (cout << "fixed used n=" << n << ", k=" << k << endl)
-#define FAST_FIXED(n, k) \
-    (cout << "fast fixed used n=" << n << ", k=" << k << endl)
+#include <types/fast_fixed.hpp>
+#include <types/fixed.hpp>
+
+#define FLOAT float
+#define DOUBLE double
+#define FIXED(n, k) Fixed<n, k>
+#define FAST_FIXED(n, k) FastFixed<n, k>

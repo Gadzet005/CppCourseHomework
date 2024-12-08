@@ -23,13 +23,13 @@ ConsoleArgs parseConsoleArguments(int argc, char* argv[]) {
                 args.filePath = optarg;
                 break;
             case 'p':
-                args.pType = parseType(optarg);
+                args.types.pType = parseType(optarg);
                 break;
             case 'v':
-                args.velocityType = parseType(optarg);
+                args.types.velocityType = parseType(optarg);
                 break;
             case 'q':
-                args.velocityFlowType = parseType(optarg);
+                args.types.velocityFlowType = parseType(optarg);
                 break;
             case -1:
             default:

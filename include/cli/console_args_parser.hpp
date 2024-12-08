@@ -7,16 +7,19 @@
 
 using namespace std;
 
+struct SimulationTypes {
+    Type pType = doubleType();
+    Type velocityType = doubleType();
+    Type velocityFlowType = doubleType();
+
+    SimulationTypes() = default;
+};
+
 struct ConsoleArgs {
     string filePath;
-    Type pType;
-    Type velocityType;
-    Type velocityFlowType;
+    SimulationTypes types;
 
-    ConsoleArgs()
-        : pType(Type::doubleType()),
-          velocityType(Type::doubleType()),
-          velocityFlowType(Type::doubleType()) {}
+    ConsoleArgs() = default;
 };
 
 ConsoleArgs parseConsoleArguments(int argc, char* argv[]);

@@ -1,4 +1,3 @@
-#include <algorithm>
 #include <cli/type_parser.hpp>
 #include <regex>
 
@@ -38,13 +37,13 @@ Type parseType(string str) {
 
     switch (typeId) {
         case TypeId::doubleType:
-            return Type::doubleType();
+            return doubleType();
         case TypeId::floatType:
-            return Type::floatType();
+            return floatType();
         case TypeId::fixedType:
-            return Type::fixedType(stoi(match[2]), stoi(match[3]));
+            return fixedType(stoi(match[2]), stoi(match[3]));
         case TypeId::fastFixedType:
-            return Type::fixedType(stoi(match[2]), stoi(match[3]));
+            return fastFixedType(stoi(match[2]), stoi(match[3]));
         default:
             throw invalid_argument("Invalid type id");
     }

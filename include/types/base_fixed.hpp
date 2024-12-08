@@ -4,12 +4,14 @@
 
 using namespace std;
 
-template <typename St, size_t K>
+template <typename St, size_t _K>
 struct BaseFixed {
     using StoreType = St;
+    static constexpr size_t N = sizeof(StoreType) * 8;
+    static constexpr size_t K = _K;
 
     static_assert(!is_same<StoreType, void>::value, "Invalid N parameter.");
-    static_assert(K <= sizeof(StoreType) * 8, "Invalid K parameter.");
+    static_assert(K <= N, "Invalid K parameter.");
 
     constexpr BaseFixed() : v(0) {}
     constexpr BaseFixed(int v) : BaseFixed(static_cast<long long>(v)) {}
