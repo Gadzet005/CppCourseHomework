@@ -2,7 +2,8 @@
 
 #include <cstddef>
 #include <fstream>
-#include <simulation/fluid_simulation.hpp>
+#include <limits>
+#include <simulation/common.hpp>
 
 SimulationDescription loadSimulationDescription(const string &path) {
     SimulationDescription description;
@@ -28,6 +29,7 @@ SimulationDescription loadSimulationDescription(const string &path) {
     size_t height, width;
     input >> height >> width;
 
+    description.field.resize(height, vector<char>(width));
     for (size_t x = 0; x < height; ++x) {
         input.ignore(numeric_limits<streamsize>::max(), '\n');
         for (size_t y = 0; y < width; ++y) {

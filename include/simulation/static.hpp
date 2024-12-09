@@ -5,34 +5,23 @@
 #include <cassert>
 #include <random>
 #include <ranges>
+#include <simulation/common.hpp>
+#include <simulation/interface.hpp>
 #include <types/fixed.hpp>
 
 using namespace std;
 
-static constexpr unsigned rhoSize = 256;
-static constexpr std::array<pair<int, int>, 4> deltas{
-    {{-1, 0}, {1, 0}, {0, -1}, {0, 1}}};
-
-struct SimulationDescription {
-    Fixed<> g;
-    array<Fixed<>, rhoSize> rho;
-    vector<vector<char>> field;
-
-    SimulationDescription() = default;
-
-    size_t getHeight() const { return field.size(); }
-
-    size_t getWidth() const { return field.size() > 0 ? field[0].size() : 0; }
-};
+template <typename T, size_t N, size_t M>
+using Matrix = array<array<T, M>, N>;
 
 template <size_t H, size_t W, typename PType, typename VelocityType,
           typename VelocityFlowType>
-class FluidSimulation {
+class StaticFluidSimulation : virtual FluidSimulationInterface {
 public:
     static constexpr size_t Height = H;
     static constexpr size_t Width = W;
 
-    FluidSimulation(const SimulationDescription &description)
+    StaticFluidSimulation(const SimulationDescription &description)
         : rho(description.rho), g(description.g) {
         for (size_t x = 0; x < Height; ++x) {
             for (size_t y = 0; y < Width; ++y) {
@@ -48,7 +37,7 @@ public:
         }
     }
 
-    bool step() {
+    bool step() override {
         Fixed<> total_delta_p = 0;
         // Apply external forces
         for (size_t x = 0; x < Height; ++x) {
@@ -146,7 +135,7 @@ public:
         return prop;
     }
 
-    void print_field() {
+    void print_field() const override {
         for (size_t x = 0; x < Height; ++x) {
             for (size_t y = 0; y < Width; ++y) {
                 cout << field[x][y];
@@ -158,7 +147,7 @@ public:
 private:
     template <typename T>
     struct VectorField {
-        array<T, deltas.size()> v[Height][Width];
+        Matrix<array<T, deltas.size()>, Height, Width> v;
 
         T &add(int x, int y, int dx, int dy, T dv) {
             return get(x, y, dx, dy) += dv;
@@ -176,7 +165,7 @@ private:
         PType cur_p;
         array<VelocityType, deltas.size()> v;
 
-        void swap_with(FluidSimulation &sim, int x, int y) {
+        void swap_with(StaticFluidSimulation &sim, int x, int y) {
             swap(sim.field[x][y], type);
             swap(sim.p[x][y], cur_p);
             swap(sim.velocity.v[x][y], v);
@@ -186,16 +175,15 @@ private:
     const array<Fixed<>, rhoSize> rho;
     const Fixed<> g;
 
-    array<array<char, Width>, Height> field;
+    Matrix<char, Height, Width> field;
 
-    array<array<PType, Width>, Height> p;
-    array<array<PType, Width>, Height> old_p;
+    Matrix<PType, Height, Width> p, old_p;
 
     VectorField<VelocityType> velocity;
     VectorField<VelocityFlowType> velocity_flow;
 
-    array<array<int, Width>, Height> last_use = {};
-    array<array<int, Width>, Height> dirs = {};
+    Matrix<int, Height, Width> last_use = {};
+    Matrix<int, Height, Width> dirs = {};
     int UT = 0;
 
     mt19937 rnd = mt19937(1337);

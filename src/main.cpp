@@ -1,6 +1,8 @@
 #include <cli/console_args_parser.hpp>
 #include <iostream>
+#include <simulation/dynamic.hpp>
 #include <simulation/loader.hpp>
+#include <simulation/static.hpp>
 #include <types/fast_fixed.hpp>
 
 using namespace std;
@@ -16,8 +18,8 @@ int main(int argc, char* argv[]) {
     }
 
     auto description = loadSimulationDescription(args.filePath);
-    FluidSimulation<N, M, FastFixed<64, 32>, FastFixed<64, 32>,
-                    FastFixed<64, 32>>
+    StaticFluidSimulation<N, M, FastFixed<64, 32>, FastFixed<64, 32>,
+                          FastFixed<64, 32>>
         simulation(description);
 
     for (size_t i = 0;; ++i) {
