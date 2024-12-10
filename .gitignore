@@ -70,3 +70,5 @@ _deps
 
 /build
 /env
+
+/.vscode
