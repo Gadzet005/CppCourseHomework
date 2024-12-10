@@ -1,9 +1,22 @@
 #include <cli/type_parser.hpp>
 #include <regex>
 
-const regex pattern(
-    R"((DOUBLE)|(FLOAT)|(FIXED)\((\d+), (\d+)\)|(FAST_FIXED)\((\d+), (\d+)\))",
-    regex_constants::icase);
+const regex patterns[] = {
+    regex(R"((DOUBLE))", regex_constants::icase),
+    regex(R"((FLOAT))", regex_constants::icase),
+    regex(R"((FAST_FIXED)\((\d+),\s*(\d+)\))", regex_constants::icase),
+    regex(R"((FIXED)\((\d+),\s*(\d+)\))", regex_constants::icase),
+};
+
+smatch getMatch(const string& str) {
+    smatch match;
+    for (const auto& pattern : patterns) {
+        if (regex_match(str, match, pattern)) {
+            return match;
+        }
+    }
+    throw invalid_argument("Invalid type.");
+}
 
 inline void toLower(std::string& str) {
     for (size_t i = 0; i < str.size(); ++i) {
@@ -11,40 +24,20 @@ inline void toLower(std::string& str) {
     }
 }
 
-TypeId getTypeId(const string& typeName) {
-    if (typeName == "double") {
-        return TypeId::doubleType;
-    } else if (typeName == "float") {
-        return TypeId::floatType;
-    } else if (typeName == "fixed") {
-        return TypeId::fixedType;
-    } else if (typeName == "fast_fixed") {
-        return TypeId::fastFixedType;
-    } else {
-        throw invalid_argument("Invalid type name");
-    }
-}
-
 Type parseType(string str) {
-    smatch match;
-    if (!regex_match(str, match, pattern)) {
-        throw invalid_argument("Invalid type format");
-    }
+    smatch match = getMatch(str);
 
     string typeName = match[1].str();
     toLower(typeName);
-    TypeId typeId = getTypeId(typeName);
 
-    switch (typeId) {
-        case TypeId::doubleType:
-            return doubleType();
-        case TypeId::floatType:
-            return floatType();
-        case TypeId::fixedType:
-            return fixedType(stoi(match[2]), stoi(match[3]));
-        case TypeId::fastFixedType:
-            return fastFixedType(stoi(match[2]), stoi(match[3]));
-        default:
-            throw invalid_argument("Invalid type id");
+    if (typeName == "float") {
+        return floatType();
+    } else if (typeName == "double") {
+        return doubleType();
+    } else if (typeName == "fixed") {
+        return fixedType(stoi(match[2]), stoi(match[3]));
+    } else if (typeName == "fast_fixed") {
+        return fastFixedType(stoi(match[2]), stoi(match[3]));
     }
+    throw invalid_argument("Unknown type name.");
 }

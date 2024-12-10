@@ -16,21 +16,20 @@ using Matrix = array<array<T, M>, N>;
 
 template <size_t H, size_t W, typename PType, typename VelocityType,
           typename VelocityFlowType>
-class StaticFluidSimulation : virtual FluidSimulationInterface {
+class StaticFluidSimulation : virtual public FluidSimulationInterface {
 public:
     static constexpr size_t Height = H;
     static constexpr size_t Width = W;
 
-    StaticFluidSimulation(const SimulationDescription &description)
-        : rho(description.rho), g(description.g) {
+    StaticFluidSimulation(const SimulationState &state)
+        : rho(state.rho), g(state.g) {
         for (size_t x = 0; x < Height; ++x) {
             for (size_t y = 0; y < Width; ++y) {
-                field[x][y] = description.field[x][y];
+                field[x][y] = state.field[x][y];
 
-                if (description.field[x][y] != '#') {
+                if (state.field[x][y] != '#') {
                     for (auto [dx, dy] : deltas) {
-                        dirs[x][y] +=
-                            (description.field[x + dx][y + dy] != '#');
+                        dirs[x][y] += (state.field[x + dx][y + dy] != '#');
                     }
                 }
             }
@@ -43,7 +42,8 @@ public:
         for (size_t x = 0; x < Height; ++x) {
             for (size_t y = 0; y < Width; ++y) {
                 if (field[x][y] == '#') continue;
-                if (field[x + 1][y] != '#') velocity.add(x, y, 1, 0, g);
+                if (field[x + 1][y] != '#')
+                    velocity.add(x, y, 1, 0, VelocityType(g));
             }
         }
 
@@ -55,18 +55,21 @@ public:
                 for (auto [dx, dy] : deltas) {
                     int nx = x + dx, ny = y + dy;
                     if (field[nx][ny] != '#' && old_p[nx][ny] < old_p[x][y]) {
-                        auto delta_p = old_p[x][y] - old_p[nx][ny];
-                        auto force = delta_p;
-                        auto &contr = velocity.get(nx, ny, -dx, -dy);
+                        PType delta_p = old_p[x][y] - old_p[nx][ny];
+                        PType force = delta_p;
+                        VelocityType &contr = velocity.get(nx, ny, -dx, -dy);
                         if (contr * VelocityType(rho[(int)field[nx][ny]]) >=
                             force) {
-                            contr -= force / PType(rho[(int)field[nx][ny]]);
+                            contr -= VelocityType(
+                                force / PType(rho[(int)field[nx][ny]]));
                             continue;
                         }
-                        force -= contr * VelocityType(rho[(int)field[nx][ny]]);
+                        force -= PType(contr *
+                                       VelocityType(rho[(int)field[nx][ny]]));
                         contr = 0;
-                        velocity.add(x, y, dx, dy,
-                                     force / PType(rho[(int)field[x][y]]));
+                        velocity.add(
+                            x, y, dx, dy,
+                            VelocityType(force / PType(rho[(int)field[x][y]])));
                         p[x][y] -= force / dirs[x][y];
                         total_delta_p -= force / dirs[x][y];
                     }
@@ -97,14 +100,15 @@ public:
             for (size_t y = 0; y < Width; ++y) {
                 if (field[x][y] == '#') continue;
                 for (auto [dx, dy] : deltas) {
-                    auto old_v = velocity.get(x, y, dx, dy);
-                    auto new_v = velocity_flow.get(x, y, dx, dy);
+                    VelocityType old_v = velocity.get(x, y, dx, dy);
+                    VelocityType new_v =
+                        VelocityType(velocity_flow.get(x, y, dx, dy));
                     if (old_v > 0) {
                         assert(new_v <= old_v);
                         velocity.get(x, y, dx, dy) = new_v;
-                        auto force = (old_v - VelocityType(new_v)) *
-                                     VelocityType(rho[(int)field[x][y]]);
-                        if (field[x][y] == '.') force *= Fixed(0.8);
+                        PType force = (old_v - new_v) *
+                                      VelocityType(rho[(int)field[x][y]]);
+                        if (field[x][y] == '.') force *= 0.8;
                         if (field[x + dx][y + dy] == '#') {
                             p[x][y] += force / dirs[x][y];
                             total_delta_p += force / dirs[x][y];
@@ -221,7 +225,8 @@ private:
                 if (flow == cap) {
                     continue;
                 }
-                auto vp = min(VelocityType(lim), cap - VelocityType(flow));
+                VelocityFlowType vp =
+                    min(VelocityType(lim), cap - VelocityType(flow));
                 if (last_use[nx][ny] == UT - 1) {
                     velocity_flow.add(x, y, dx, dy, vp);
                     last_use[x][y] = UT;
@@ -230,7 +235,7 @@ private:
                 auto [t, prop, end] = propagate_flow(nx, ny, vp);
                 ret += t;
                 if (prop) {
-                    velocity_flow.add(x, y, dx, dy, t);
+                    velocity_flow.add(x, y, dx, dy, VelocityFlowType(t));
                     last_use[x][y] = UT;
                     return {t, prop && end != pair(x, y), end};
                 }

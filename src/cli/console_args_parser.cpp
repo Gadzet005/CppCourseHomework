@@ -6,8 +6,8 @@
 constexpr struct option longOptions[] = {
     {"file", required_argument, nullptr, 'f'},
     {"p-type", required_argument, nullptr, 'p'},
-    {"velocity-type", required_argument, nullptr, 'v'},
-    {"velocity-flow-type", required_argument, nullptr, 'q'},
+    {"v-type", required_argument, nullptr, 'v'},
+    {"v-flow-type", required_argument, nullptr, 'q'},
     {nullptr, 0, nullptr, 0}};
 
 const char* shortOptions = "f:p:v:q:";
@@ -23,13 +23,13 @@ ConsoleArgs parseConsoleArguments(int argc, char* argv[]) {
                 args.filePath = optarg;
                 break;
             case 'p':
-                args.types.pType = parseType(optarg);
+                args.pType = parseType(optarg);
                 break;
             case 'v':
-                args.types.velocityType = parseType(optarg);
+                args.velocityType = parseType(optarg);
                 break;
             case 'q':
-                args.types.velocityFlowType = parseType(optarg);
+                args.velocityFlowType = parseType(optarg);
                 break;
             case -1:
             default:

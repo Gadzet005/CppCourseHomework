@@ -87,7 +87,7 @@ struct BaseFixed {
     }
 
     friend ostream &operator<<(ostream &out, const BaseFixed &x) {
-        return out << x.v / (double)(StoreType(1) << K);
+        return out << double(x);
     }
 
     friend istream &operator>>(istream &in, BaseFixed &x) {
@@ -96,4 +96,8 @@ struct BaseFixed {
         x = BaseFixed(v);
         return in;
     }
+
+    explicit operator int() const { return v >> K; }
+    explicit operator float() const { return v / (float)(StoreType(1) << K); }
+    explicit operator double() const { return v / (double)(StoreType(1) << K); }
 };
