@@ -9,10 +9,8 @@
 #include <simulation/interface.hpp>
 #include <types/fixed.hpp>
 
-using namespace std;
-
 template <typename T, size_t N, size_t M>
-using Matrix = array<array<T, M>, N>;
+using Matrix = std::array<std::array<T, M>, N>;
 
 template <size_t H, size_t W, typename PType, typename VelocityType,
           typename VelocityFlowType>
@@ -142,23 +140,24 @@ public:
     void print_field() const override {
         for (size_t x = 0; x < Height; ++x) {
             for (size_t y = 0; y < Width; ++y) {
-                cout << field[x][y];
+                std::cout << field[x][y];
             }
-            cout << '\n';
+            std::cout << '\n';
         }
     }
 
 private:
     template <typename T>
     struct VectorField {
-        Matrix<array<T, deltas.size()>, Height, Width> v;
+        Matrix<std::array<T, deltas.size()>, Height, Width> v;
 
         T &add(int x, int y, int dx, int dy, T dv) {
             return get(x, y, dx, dy) += dv;
         }
 
         T &get(int x, int y, int dx, int dy) {
-            size_t i = ranges::find(deltas, pair(dx, dy)) - deltas.begin();
+            size_t i =
+                std::ranges::find(deltas, std::pair(dx, dy)) - deltas.begin();
             assert(i < deltas.size());
             return v[x][y][i];
         }
@@ -167,16 +166,16 @@ private:
     struct ParticleParams {
         char type;
         PType cur_p;
-        array<VelocityType, deltas.size()> v;
+        std::array<VelocityType, deltas.size()> v;
 
         void swap_with(StaticFluidSimulation &sim, int x, int y) {
-            swap(sim.field[x][y], type);
-            swap(sim.p[x][y], cur_p);
-            swap(sim.velocity.v[x][y], v);
+            std::swap(sim.field[x][y], type);
+            std::swap(sim.p[x][y], cur_p);
+            std::swap(sim.velocity.v[x][y], v);
         }
     };
 
-    const array<Fixed<>, rhoSize> rho;
+    const std::array<Fixed<>, rhoSize> rho;
     const Fixed<> g;
 
     Matrix<char, Height, Width> field;
@@ -190,7 +189,7 @@ private:
     Matrix<int, Height, Width> dirs = {};
     int UT = 0;
 
-    mt19937 rnd = mt19937(1337);
+    std::mt19937 rnd = std::mt19937(1337);
 
     Fixed<> random01() {
         return Fixed<>::from_raw((rnd() & ((1LL << Fixed<>::K) - 1)));
@@ -213,8 +212,8 @@ private:
         return sum;
     }
 
-    tuple<Fixed<>, bool, pair<int, int>> propagate_flow(int x, int y,
-                                                        Fixed<> lim) {
+    std::tuple<Fixed<>, bool, std::pair<int, int>> propagate_flow(int x, int y,
+                                                                  Fixed<> lim) {
         last_use[x][y] = UT - 1;
         Fixed<> ret = 0;
         for (auto [dx, dy] : deltas) {
@@ -226,7 +225,7 @@ private:
                     continue;
                 }
                 VelocityFlowType vp =
-                    min(VelocityType(lim), cap - VelocityType(flow));
+                    std::min(VelocityType(lim), cap - VelocityType(flow));
                 if (last_use[nx][ny] == UT - 1) {
                     velocity_flow.add(x, y, dx, dy, vp);
                     last_use[x][y] = UT;
@@ -237,7 +236,7 @@ private:
                 if (prop) {
                     velocity_flow.add(x, y, dx, dy, VelocityFlowType(t));
                     last_use[x][y] = UT;
-                    return {t, prop && end != pair(x, y), end};
+                    return {t, prop && end != std::pair(x, y), end};
                 }
             }
         }

@@ -5,13 +5,13 @@
 #include <vector>
 
 constexpr unsigned rhoSize = 256;
-constexpr std::array<pair<int, int>, 4> deltas{
+constexpr std::array<std::pair<int, int>, 4> deltas{
     {{-1, 0}, {1, 0}, {0, -1}, {0, 1}}};
 
 struct SimulationState {
     Fixed<> g;
-    array<Fixed<>, rhoSize> rho;
-    vector<vector<char>> field;
+    std::array<Fixed<>, rhoSize> rho;
+    std::vector<std::vector<char>> field;
 
     size_t getHeight() const { return field.size(); }
     size_t getWidth() const { return field.size() > 0 ? field[0].size() : 0; }

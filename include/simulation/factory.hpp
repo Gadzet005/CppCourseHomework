@@ -11,8 +11,6 @@
 #include <types/fixed.hpp>
 #include <types/type.hpp>
 
-using namespace std;
-
 struct FactoryContext {
     size_t height, width;
     Type pType, velocityType, velocityFlowType;
@@ -21,29 +19,31 @@ struct FactoryContext {
 
 namespace internal {
 
-using Factory =
-    function<unique_ptr<FluidSimulationInterface>(const FactoryContext&)>;
+using Factory = std::function<std::unique_ptr<FluidSimulationInterface>(
+    const FactoryContext&)>;
 
 namespace StaticFieldFactory {
 template <typename PType, typename VelocityType, typename VelocityFlowType,
           size_t Height, size_t Width>
-unique_ptr<FluidSimulationInterface> create(const FactoryContext& ctx) {
-    cout << "Used static field(" << Height << ", " << Width << ")" << endl;
-    return make_unique<StaticFluidSimulation<Height, Width, PType, VelocityType,
-                                             VelocityFlowType>>(
+std::unique_ptr<FluidSimulationInterface> create(const FactoryContext& ctx) {
+    std::cout << "Used static field(" << Height << ", " << Width << ")"
+              << std::endl;
+    return std::make_unique<StaticFluidSimulation<
+        Height, Width, PType, VelocityType, VelocityFlowType>>(
         ctx.initialState);
 }
 }  // namespace StaticFieldFactory
 
 namespace SizeFactory {
 template <typename PType, typename VelocityType, typename VelocityFlowType>
-unique_ptr<FluidSimulationInterface> create(const FactoryContext& ctx) {
-#define S(height, width)                                       \
-    make_tuple(height, width,                                  \
-               StaticFieldFactory::create<PType, VelocityType, \
-                                          VelocityFlowType, height, width>)
+std::unique_ptr<FluidSimulationInterface> create(const FactoryContext& ctx) {
+#define S(height, width)                                                  \
+    std::make_tuple(                                                      \
+        height, width,                                                    \
+        StaticFieldFactory::create<PType, VelocityType, VelocityFlowType, \
+                                   height, width>)
 
-    static const tuple<size_t, size_t, Factory> factories[] = {SIZES};
+    static const std::tuple<size_t, size_t, Factory> factories[] = {SIZES};
 
 #undef S
 
@@ -53,9 +53,9 @@ unique_ptr<FluidSimulationInterface> create(const FactoryContext& ctx) {
         }
     }
 
-    cout << "Used dynamic field(" << ctx.height << ", " << ctx.width << ")"
-         << endl;
-    return make_unique<
+    std::cout << "Used dynamic field(" << ctx.height << ", " << ctx.width << ")"
+              << std::endl;
+    return std::make_unique<
         DynamicFluidSimulation<PType, VelocityType, VelocityFlowType>>(
         ctx.initialState);
 }
@@ -63,7 +63,7 @@ unique_ptr<FluidSimulationInterface> create(const FactoryContext& ctx) {
 
 namespace VelocityFlowTypeFactory {
 template <typename PType, typename VelocityType>
-unique_ptr<FluidSimulationInterface> create(const FactoryContext& ctx) {
+std::unique_ptr<FluidSimulationInterface> create(const FactoryContext& ctx) {
 #define DOUBLE \
     { doubleType(), SizeFactory::create<PType, VelocityType, double> }
 #define FLOAT \
@@ -76,7 +76,7 @@ unique_ptr<FluidSimulationInterface> create(const FactoryContext& ctx) {
             SizeFactory::create<PType, VelocityType, FastFixed<n, k>> \
     }
 
-    static const pair<Type, Factory> factories[] = {TYPES};
+    static const std::pair<Type, Factory> factories[] = {TYPES};
 
 #undef DOUBLE
 #undef FLOAT
@@ -85,18 +85,18 @@ unique_ptr<FluidSimulationInterface> create(const FactoryContext& ctx) {
 
     for (const auto& [type, factory] : factories) {
         if (ctx.velocityFlowType == type) {
-            cout << "VFlowType used: " << toString(ctx.velocityFlowType)
-                 << endl;
+            std::cout << "VFlowType used: " << toString(ctx.velocityFlowType)
+                      << std::endl;
             return factory(ctx);
         }
     }
-    throw invalid_argument("Unsupported velocity flow type.");
+    throw std::invalid_argument("Unsupported velocity flow type.");
 }
 }  // namespace VelocityFlowTypeFactory
 
 namespace VelocityTypeFactory {
 template <typename PType>
-unique_ptr<FluidSimulationInterface> create(const FactoryContext& ctx) {
+std::unique_ptr<FluidSimulationInterface> create(const FactoryContext& ctx) {
 #define DOUBLE \
     { doubleType(), VelocityFlowTypeFactory::create<PType, double> }
 #define FLOAT \
@@ -109,7 +109,7 @@ unique_ptr<FluidSimulationInterface> create(const FactoryContext& ctx) {
             VelocityFlowTypeFactory::create<PType, FastFixed<n, k>> \
     }
 
-    static const pair<Type, Factory> factories[] = {TYPES};
+    static const std::pair<Type, Factory> factories[] = {TYPES};
 
 #undef DOUBLE
 #undef FLOAT
@@ -118,16 +118,17 @@ unique_ptr<FluidSimulationInterface> create(const FactoryContext& ctx) {
 
     for (const auto& [type, factory] : factories) {
         if (ctx.velocityType == type) {
-            cout << "VType used: " << toString(ctx.velocityType) << endl;
+            std::cout << "VType used: " << toString(ctx.velocityType)
+                      << std::endl;
             return factory(ctx);
         }
     }
-    throw invalid_argument("Unsupported velocity type.");
+    throw std::invalid_argument("Unsupported velocity type.");
 }
 }  // namespace VelocityTypeFactory
 
 namespace PTypeFactory {
-unique_ptr<FluidSimulationInterface> create(const FactoryContext& ctx) {
+std::unique_ptr<FluidSimulationInterface> create(const FactoryContext& ctx) {
 #define DOUBLE \
     { doubleType(), VelocityTypeFactory::create<double> }
 #define FLOAT \
@@ -137,7 +138,7 @@ unique_ptr<FluidSimulationInterface> create(const FactoryContext& ctx) {
 #define FAST_FIXED(n, k) \
     { fastFixedType(n, k), VelocityTypeFactory::create<FastFixed<n, k>> }
 
-    static const pair<Type, Factory> factories[] = {TYPES};
+    static const std::pair<Type, Factory> factories[] = {TYPES};
 
 #undef DOUBLE
 #undef FLOAT
@@ -146,11 +147,11 @@ unique_ptr<FluidSimulationInterface> create(const FactoryContext& ctx) {
 
     for (const auto& [type, factory] : factories) {
         if (ctx.pType == type) {
-            cout << "PType used: " << toString(ctx.pType) << endl;
+            std::cout << "PType used: " << toString(ctx.pType) << std::endl;
             return factory(ctx);
         }
     }
-    throw invalid_argument("Unsupported p type.");
+    throw std::invalid_argument("Unsupported p type.");
 }
 }  // namespace PTypeFactory
 
@@ -160,7 +161,7 @@ class FluidSimulationFactory {
 public:
     FluidSimulationFactory(const FactoryContext& ctx) : ctx(ctx) {}
 
-    unique_ptr<FluidSimulationInterface> create() const {
+    std::unique_ptr<FluidSimulationInterface> create() const {
         return internal::PTypeFactory::create(ctx);
     }
 

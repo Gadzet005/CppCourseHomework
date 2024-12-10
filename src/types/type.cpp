@@ -1,5 +1,7 @@
 #include <types/type.hpp>
 
+using namespace std;
+
 string toString(const Type& type) {
     switch (type.typeId) {
         case TypeId::doubleType:

@@ -3,8 +3,6 @@
 #include <cstdint>
 #include <types/base_fixed.hpp>
 
-using namespace std;
-
 namespace FixedInternal {
 
 template <size_t N>

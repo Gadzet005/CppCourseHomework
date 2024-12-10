@@ -1,6 +1,8 @@
 #include <cli/type_parser.hpp>
 #include <regex>
 
+using namespace std;
+
 const regex patterns[] = {
     regex(R"((DOUBLE))", regex_constants::icase),
     regex(R"((FLOAT))", regex_constants::icase),
@@ -15,7 +17,7 @@ smatch getMatch(const string& str) {
             return match;
         }
     }
-    throw invalid_argument("Invalid type.");
+    throw std::invalid_argument("Invalid type.");
 }
 
 inline void toLower(std::string& str) {
@@ -39,5 +41,5 @@ Type parseType(string str) {
     } else if (typeName == "fast_fixed") {
         return fastFixedType(stoi(match[2]), stoi(match[3]));
     }
-    throw invalid_argument("Unknown type name.");
+    throw std::invalid_argument("Unknown type name.");
 }

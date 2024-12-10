@@ -3,6 +3,8 @@
 #include <cli/console_args_parser.hpp>
 #include <stdexcept>
 
+using namespace std;
+
 constexpr struct option longOptions[] = {
     {"file", required_argument, nullptr, 'f'},
     {"p-type", required_argument, nullptr, 'p'},
@@ -33,7 +35,7 @@ ConsoleArgs parseConsoleArguments(int argc, char* argv[]) {
                 break;
             case -1:
             default:
-                throw invalid_argument("Invalid option");
+                throw std::invalid_argument("Invalid option");
         }
     }
 

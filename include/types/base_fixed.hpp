@@ -2,15 +2,14 @@
 
 #include <iostream>
 
-using namespace std;
-
 template <typename St, size_t _K>
 struct BaseFixed {
     using StoreType = St;
     static constexpr size_t N = sizeof(StoreType) * 8;
     static constexpr size_t K = _K;
 
-    static_assert(!is_same<StoreType, void>::value, "Invalid N parameter.");
+    static_assert(!std::is_same<StoreType, void>::value,
+                  "Invalid N parameter.");
     static_assert(K <= N, "Invalid K parameter.");
 
     constexpr BaseFixed() : v(0) {}
@@ -86,11 +85,11 @@ struct BaseFixed {
         return x;
     }
 
-    friend ostream &operator<<(ostream &out, const BaseFixed &x) {
+    friend std::ostream &operator<<(std::ostream &out, const BaseFixed &x) {
         return out << double(x);
     }
 
-    friend istream &operator>>(istream &in, BaseFixed &x) {
+    friend std::istream &operator>>(std::istream &in, BaseFixed &x) {
         double v;
         in >> v;
         x = BaseFixed(v);
