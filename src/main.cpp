@@ -10,8 +10,12 @@ int main(int argc, char* argv[]) {
     auto args = parseConsoleArguments(argc, argv);
 
     if (args.filePath.empty()) {
+        args.filePath = "/home/gadzet/projects/cpphw2/env/input2.txt";
+        args.pType = fixedType(64, 32);
+        args.velocityType = fixedType(64, 32);
+        args.velocityFlowType = fixedType(64, 32);
         cout << "Error: Input file path is not provided" << endl;
-        return 0;
+        // return 0;
     }
 
     SimulationState state = loadSimulationState(args.filePath);
