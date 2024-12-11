@@ -7,22 +7,56 @@
 #include <ranges>
 #include <simulation/common.hpp>
 #include <simulation/interface.hpp>
+#include <type_traits>
 #include <types/fixed.hpp>
+#include <vector>
+
+namespace internal {
 
 template <typename T, size_t N, size_t M>
-using Matrix = std::array<std::array<T, M>, N>;
+using StaticMatrix = std::array<std::array<T, M>, N>;
 
-template <size_t H, size_t W, typename PType, typename VelocityType,
-          typename VelocityFlowType>
-class StaticFluidSimulation : virtual public FluidSimulationInterface {
+template <typename T>
+using DynamicMatrix = std::vector<std::vector<T>>;
+
+template <typename T, size_t N, size_t M>
+using StaticVectorMatrix = StaticMatrix<std::array<T, deltas.size()>, N, M>;
+
+template <typename T>
+using DynamicVectorMatrix = DynamicMatrix<std::array<T, deltas.size()>>;
+
+}  // namespace internal
+
+// If (Height, Width) == (0, 0) => use dynamic field
+// Otherwise static field
+template <typename PType, typename VelocityType, typename VelocityFlowType,
+          size_t Height = 0, size_t Width = 0>
+class FluidSimulation : virtual public FluidSimulationInterface {
+private:
+    static constexpr bool isDynamic = Height == 0 && Width == 0;
+
+    template <typename T>
+    using Matrix =
+        std::conditional<isDynamic, internal::DynamicMatrix<T>,
+                         internal::StaticMatrix<T, Height, Width>>::type;
+
+    template <typename T>
+    using VectorMatrix =
+        std::conditional<isDynamic, internal::DynamicVectorMatrix<T>,
+                         internal::StaticVectorMatrix<T, Height, Width>>::type;
+
 public:
-    static constexpr size_t Height = H;
-    static constexpr size_t Width = W;
+    FluidSimulation(const SimulationState &state)
+        : height(isDynamic ? state.getFieldHeight() : Height),
+          width(isDynamic ? state.getFieldWidth() : Width),
+          rho(state.rho),
+          g(state.g) {
+        // Check for static field.
+        assert(state.getFieldHeight() == height);
+        assert(state.getFieldWidth() == width);
 
-    StaticFluidSimulation(const SimulationState &state)
-        : rho(state.rho), g(state.g) {
-        for (size_t x = 0; x < Height; ++x) {
-            for (size_t y = 0; y < Width; ++y) {
+        for (size_t x = 0; x < height; ++x) {
+            for (size_t y = 0; y < width; ++y) {
                 field[x][y] = state.field[x][y];
 
                 if (state.field[x][y] != '#') {
@@ -37,8 +71,8 @@ public:
     bool step() override {
         Fixed<> total_delta_p = 0;
         // Apply external forces
-        for (size_t x = 0; x < Height; ++x) {
-            for (size_t y = 0; y < Width; ++y) {
+        for (size_t x = 0; x < height; ++x) {
+            for (size_t y = 0; y < width; ++y) {
                 if (field[x][y] == '#') continue;
                 if (field[x + 1][y] != '#')
                     velocity.add(x, y, 1, 0, VelocityType(g));
@@ -47,8 +81,8 @@ public:
 
         // Apply forces from p
         old_p = p;
-        for (size_t x = 0; x < Height; ++x) {
-            for (size_t y = 0; y < Width; ++y) {
+        for (size_t x = 0; x < height; ++x) {
+            for (size_t y = 0; y < width; ++y) {
                 if (field[x][y] == '#') continue;
                 for (auto [dx, dy] : deltas) {
                     int nx = x + dx, ny = y + dy;
@@ -81,8 +115,8 @@ public:
         do {
             UT += 2;
             prop = 0;
-            for (size_t x = 0; x < Height; ++x) {
-                for (size_t y = 0; y < Width; ++y) {
+            for (size_t x = 0; x < height; ++x) {
+                for (size_t y = 0; y < width; ++y) {
                     if (field[x][y] != '#' && last_use[x][y] != UT) {
                         auto [t, local_prop, _] = propagate_flow(x, y, 1);
                         if (t > 0) {
@@ -94,8 +128,8 @@ public:
         } while (prop);
 
         // Recalculate p with kinetic energy
-        for (size_t x = 0; x < Height; ++x) {
-            for (size_t y = 0; y < Width; ++y) {
+        for (size_t x = 0; x < height; ++x) {
+            for (size_t y = 0; y < width; ++y) {
                 if (field[x][y] == '#') continue;
                 for (auto [dx, dy] : deltas) {
                     VelocityType old_v = velocity.get(x, y, dx, dy);
@@ -121,8 +155,8 @@ public:
 
         UT += 2;
         prop = false;
-        for (size_t x = 0; x < Height; ++x) {
-            for (size_t y = 0; y < Width; ++y) {
+        for (size_t x = 0; x < height; ++x) {
+            for (size_t y = 0; y < width; ++y) {
                 if (field[x][y] != '#' && last_use[x][y] != UT) {
                     if (random01() < move_prob(x, y)) {
                         prop = true;
@@ -137,19 +171,19 @@ public:
         return prop;
     }
 
-    void print_field() const override {
-        for (size_t x = 0; x < Height; ++x) {
-            for (size_t y = 0; y < Width; ++y) {
-                std::cout << field[x][y];
+    void print_field(std::ostream &out) const override {
+        for (size_t x = 0; x < height; ++x) {
+            for (size_t y = 0; y < width; ++y) {
+                out << field[x][y];
             }
-            std::cout << '\n';
+            out << '\n';
         }
     }
 
 private:
     template <typename T>
     struct VectorField {
-        Matrix<std::array<T, deltas.size()>, Height, Width> v;
+        VectorMatrix<T> v;
 
         T &add(int x, int y, int dx, int dy, T dv) {
             return get(x, y, dx, dy) += dv;
@@ -167,29 +201,34 @@ private:
         char type;
         PType cur_p;
         std::array<VelocityType, deltas.size()> v;
+        FluidSimulation &sim;
 
-        void swap_with(StaticFluidSimulation &sim, int x, int y) {
+        ParticleParams(FluidSimulation &sim) : sim(sim) {}
+
+        void swap_with(int x, int y) {
             std::swap(sim.field[x][y], type);
             std::swap(sim.p[x][y], cur_p);
             std::swap(sim.velocity.v[x][y], v);
         }
     };
 
+    size_t height, width;
+
     const std::array<Fixed<>, rhoSize> rho;
     const Fixed<> g;
 
-    Matrix<char, Height, Width> field;
+    Matrix<char> field;
 
-    Matrix<PType, Height, Width> p, old_p;
+    Matrix<PType> p, old_p;
 
     VectorField<VelocityType> velocity;
     VectorField<VelocityFlowType> velocity_flow;
 
-    Matrix<int, Height, Width> last_use = {};
-    Matrix<int, Height, Width> dirs = {};
+    Matrix<int> last_use{};
+    Matrix<int> dirs{};
     int UT = 0;
 
-    std::mt19937 rnd = std::mt19937(1337);
+    std::mt19937 rnd{1337};
 
     Fixed<> random01() {
         return Fixed<>::from_raw((rnd() & ((1LL << Fixed<>::K) - 1)));
@@ -319,10 +358,10 @@ private:
         }
         if (ret) {
             if (!is_first) {
-                ParticleParams pp{};
-                pp.swap_with(*this, x, y);
-                pp.swap_with(*this, nx, ny);
-                pp.swap_with(*this, x, y);
+                ParticleParams pp(*this);
+                pp.swap_with(x, y);
+                pp.swap_with(nx, ny);
+                pp.swap_with(x, y);
             }
         }
         return ret;

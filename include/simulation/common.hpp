@@ -13,6 +13,8 @@ struct SimulationState {
     std::array<Fixed<>, rhoSize> rho;
     std::vector<std::vector<char>> field;
 
-    size_t getHeight() const { return field.size(); }
-    size_t getWidth() const { return field.size() > 0 ? field[0].size() : 0; }
+    size_t getFieldHeight() const { return field.size(); }
+    size_t getFieldWidth() const {
+        return field.size() > 0 ? field[0].size() : 0;
+    }
 };

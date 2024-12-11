@@ -3,9 +3,8 @@
 #include <array>
 #include <functional>
 #include <memory>
-#include <simulation/dynamic.hpp>
 #include <simulation/interface.hpp>
-#include <simulation/static.hpp>
+#include <simulation/simulation.hpp>
 #include <tuple>
 #include <types/fast_fixed.hpp>
 #include <types/fixed.hpp>
@@ -28,8 +27,8 @@ template <typename PType, typename VelocityType, typename VelocityFlowType,
 std::unique_ptr<FluidSimulationInterface> create(const FactoryContext& ctx) {
     std::cout << "Used static field(" << Height << ", " << Width << ")"
               << std::endl;
-    return std::make_unique<StaticFluidSimulation<
-        Height, Width, PType, VelocityType, VelocityFlowType>>(
+    return std::make_unique<
+        FluidSimulation<PType, VelocityType, VelocityFlowType, Height, Width>>(
         ctx.initialState);
 }
 }  // namespace StaticFieldFactory
@@ -56,7 +55,7 @@ std::unique_ptr<FluidSimulationInterface> create(const FactoryContext& ctx) {
     std::cout << "Used dynamic field(" << ctx.height << ", " << ctx.width << ")"
               << std::endl;
     return std::make_unique<
-        DynamicFluidSimulation<PType, VelocityType, VelocityFlowType>>(
+        FluidSimulation<PType, VelocityType, VelocityFlowType>>(
         ctx.initialState);
 }
 }  // namespace SizeFactory
