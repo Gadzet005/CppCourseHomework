@@ -14,7 +14,7 @@
 struct FactoryContext {
     size_t height, width;
     Type pType, velocityType, velocityFlowType;
-    SimulationState initialState;
+    FluidSimulationState initialState;
 };
 
 namespace internal {

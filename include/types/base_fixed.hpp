@@ -97,6 +97,7 @@ struct BaseFixed {
     }
 
     explicit operator int() const { return v >> K; }
+    explicit operator int64_t() const { return int64_t(v >> K); }
     explicit operator float() const { return v / (float)(StoreType(1) << K); }
     explicit operator double() const { return v / (double)(StoreType(1) << K); }
 };

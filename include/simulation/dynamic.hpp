@@ -6,12 +6,14 @@ template <typename PType, typename VelocityType, typename VelocityFlowType>
 class DynamicFluidSimulation
     : public BaseFluidSimulation<PType, VelocityType, VelocityFlowType> {
 public:
-    DynamicFluidSimulation(const SimulationState &state)
+    DynamicFluidSimulation(const FluidSimulationState &state)
         : BaseFluidSimulation<PType, VelocityType, VelocityFlowType>(
               state.getFieldHeight(), state.getFieldWidth(), state.g,
               state.rho) {
+        this->UT = state.UT;
+
+        this->field.resize(this->height, std::vector<char>(this->width));
         this->p.resize(this->height, std::vector<PType>(this->width));
-        this->old_p.resize(this->height, std::vector<PType>(this->width));
         this->dirs.resize(this->height, std::vector<int>(this->width, 0));
         this->last_use.resize(this->height, std::vector<int>(this->width, 0));
         this->velocity.v.resize(
@@ -21,17 +23,19 @@ public:
         this->velocity_flow.v.resize(
             this->height,
             std::vector<std::array<VelocityFlowType, deltas.size()>>(
-                this->width, std::array<VelocityType, deltas.size()>()));
-
-        this->field = state.field;
+                this->width, std::array<VelocityFlowType, deltas.size()>()));
+        this->old_p = this->p;
 
         for (size_t x = 0; x < this->height; ++x) {
             for (size_t y = 0; y < this->width; ++y) {
-                if (state.field[x][y] != '#') {
-                    for (auto [dx, dy] : deltas) {
-                        this->dirs[x][y] +=
-                            (state.field[x + dx][y + dy] != '#');
-                    }
+                this->field[x][y] = state.field[x][y];
+                this->p[x][y] = PType(state.p[x][y]);
+                this->dirs[x][y] = state.dirs[x][y];
+                this->last_use[x][y] = state.last_use[x][y];
+
+                for (size_t k = 0; k < deltas.size(); k++) {
+                    this->velocity.v[x][y][k] =
+                        VelocityType(state.velocity[x][y][k]);
                 }
             }
         }

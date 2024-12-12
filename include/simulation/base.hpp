@@ -139,6 +139,27 @@ public:
         }
     }
 
+    virtual FluidSimulationState getState() const override {
+        FluidSimulationState state(this->height, this->width);
+        state.g = this->g;
+        state.rho = this->rho;
+        state.UT = this->UT;
+
+        for (size_t x = 0; x < this->height; ++x) {
+            for (size_t y = 0; y < this->width; ++y) {
+                state.field[x][y] = this->field[x][y];
+                state.p[x][y] = this->p[x][y];
+                state.dirs[x][y] = this->dirs[x][y];
+                state.last_use[x][y] = this->last_use[x][y];
+
+                for (size_t k = 0; k < deltas.size(); k++) {
+                    state.velocity[x][y][k] = this->velocity.v[x][y][k];
+                }
+            }
+        }
+        return state;
+    }
+
 protected:
     BaseFluidSimulation(size_t height, size_t width, Fixed<> g,
                         std::array<Fixed<>, rhoSize> rho)

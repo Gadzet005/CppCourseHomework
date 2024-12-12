@@ -8,17 +8,20 @@ class StaticFluidSimulation
     : public BaseFluidSimulation<PType, VelocityType, VelocityFlowType, Height,
                                  Width> {
 public:
-    StaticFluidSimulation(const SimulationState &state)
+    StaticFluidSimulation(const FluidSimulationState &state)
         : BaseFluidSimulation<PType, VelocityType, VelocityFlowType, Height,
                               Width>(Height, Width, state.g, state.rho) {
+        this->UT = state.UT;
         for (size_t x = 0; x < this->height; ++x) {
             for (size_t y = 0; y < this->width; ++y) {
                 this->field[x][y] = state.field[x][y];
-                if (state.field[x][y] != '#') {
-                    for (auto [dx, dy] : deltas) {
-                        this->dirs[x][y] +=
-                            (state.field[x + dx][y + dy] != '#');
-                    }
+                this->p[x][y] = PType(state.p[x][y]);
+                this->dirs[x][y] = state.dirs[x][y];
+                this->last_use[x][y] = state.last_use[x][y];
+
+                for (size_t k = 0; k < deltas.size(); k++) {
+                    this->velocity.v[x][y][k] =
+                        VelocityType(state.velocity[x][y][k]);
                 }
             }
         }

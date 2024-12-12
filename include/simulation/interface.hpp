@@ -1,10 +1,12 @@
 #pragma once
 
 #include <iostream>
+#include <simulation/common.hpp>
 
 class FluidSimulationInterface {
 public:
     virtual ~FluidSimulationInterface() = default;
     virtual bool step() = 0;
     virtual void print_field(std::ostream& out = std::cout) const = 0;
+    virtual FluidSimulationState getState() const = 0;
 };

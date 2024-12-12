@@ -20,10 +20,40 @@ using StaticVectorMatrix = StaticMatrix<std::array<T, deltas.size()>, N, M>;
 template <typename T>
 using DynamicVectorMatrix = DynamicMatrix<std::array<T, deltas.size()>>;
 
-struct SimulationState {
+/// @brief State of fluid simulation.
+struct FluidSimulationState {
     Fixed<> g;
     std::array<Fixed<>, rhoSize> rho;
-    std::vector<std::vector<char>> field;
+    DynamicMatrix<char> field;
+    DynamicMatrix<Fixed<>> p;
+    DynamicVectorMatrix<Fixed<>> velocity;
+    DynamicMatrix<int> last_use;
+    DynamicMatrix<int> dirs;
+    int UT = 0;
+
+    FluidSimulationState() = default;
+
+    FluidSimulationState(size_t height, size_t width) {
+        field.resize(height, std::vector<char>(width));
+        p.resize(height, std::vector<Fixed<>>(width));
+        dirs.resize(height, std::vector<int>(width, 0));
+        last_use.resize(height, std::vector<int>(width, 0));
+        velocity.resize(height,
+                        std::vector<std::array<Fixed<>, deltas.size()>>(
+                            width, std::array<Fixed<>, deltas.size()>()));
+    }
+
+    void initStartState() {
+        for (size_t x = 0; x < getFieldHeight(); ++x) {
+            for (size_t y = 0; y < getFieldWidth(); ++y) {
+                if (field[x][y] != '#') {
+                    for (auto [dx, dy] : deltas) {
+                        dirs[x][y] += (field[x + dx][y + dy] != '#');
+                    }
+                }
+            }
+        }
+    }
 
     size_t getFieldHeight() const { return field.size(); }
     size_t getFieldWidth() const {
