@@ -1,7 +1,5 @@
 #pragma once
 
-#include <getopt.h>
-
 #include <cli/type_parser.hpp>
 #include <string>
 

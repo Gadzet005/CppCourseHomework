@@ -43,7 +43,11 @@ struct FluidSimulationState {
                             width, std::array<Fixed<>, deltas.size()>()));
     }
 
-    void initStartState() {
+    FluidSimulationState(DynamicMatrix<char>&& initialField)
+        : FluidSimulationState(initialField.size(), initialField.size() > 0
+                                                        ? initialField[0].size()
+                                                        : 0) {
+        field = std::move(initialField);
         for (size_t x = 0; x < getFieldHeight(); ++x) {
             for (size_t y = 0; y < getFieldWidth(); ++y) {
                 if (field[x][y] != '#') {

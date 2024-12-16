@@ -11,13 +11,20 @@
 #include <types/fixed.hpp>
 #include <types/type.hpp>
 
+/// @brief contains all data for fluid simulation initialization.
 struct FactoryContext {
     size_t height, width;
     Type pType, velocityType, velocityFlowType;
     FluidSimulationState initialState;
 };
 
-namespace internal {
+namespace factories {
+
+/*
+Layer factory architecture.
+Each factory transform one dynamic argument into static argument
+and call next factory with all earlier transformed static arguments.
+*/
 
 using Factory = std::function<std::unique_ptr<FluidSimulationInterface>(
     const FactoryContext&)>;
@@ -85,7 +92,7 @@ std::unique_ptr<FluidSimulationInterface> create(const FactoryContext& ctx) {
 
     for (const auto& [type, factory] : factories) {
         if (ctx.velocityFlowType == type) {
-            std::cout << "VFlowType used: " << toString(ctx.velocityFlowType)
+            std::cout << "VFlowType used: " << to_string(ctx.velocityFlowType)
                       << std::endl;
             return factory(ctx);
         }
@@ -118,7 +125,7 @@ std::unique_ptr<FluidSimulationInterface> create(const FactoryContext& ctx) {
 
     for (const auto& [type, factory] : factories) {
         if (ctx.velocityType == type) {
-            std::cout << "VType used: " << toString(ctx.velocityType)
+            std::cout << "VType used: " << to_string(ctx.velocityType)
                       << std::endl;
             return factory(ctx);
         }
@@ -147,7 +154,7 @@ std::unique_ptr<FluidSimulationInterface> create(const FactoryContext& ctx) {
 
     for (const auto& [type, factory] : factories) {
         if (ctx.pType == type) {
-            std::cout << "PType used: " << toString(ctx.pType) << std::endl;
+            std::cout << "PType used: " << to_string(ctx.pType) << std::endl;
             return factory(ctx);
         }
     }
@@ -155,14 +162,14 @@ std::unique_ptr<FluidSimulationInterface> create(const FactoryContext& ctx) {
 }
 }  // namespace PTypeFactory
 
-}  // namespace internal
+}  // namespace factories
 
 class FluidSimulationFactory {
 public:
     FluidSimulationFactory(const FactoryContext& ctx) : ctx(ctx) {}
 
     std::unique_ptr<FluidSimulationInterface> create() const {
-        return internal::PTypeFactory::create(ctx);
+        return factories::PTypeFactory::create(ctx);
     }
 
 private:

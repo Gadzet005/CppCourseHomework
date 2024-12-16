@@ -11,6 +11,9 @@
 #include <types/fixed.hpp>
 #include <vector>
 
+/// @brief Base fluid simulation.
+/// If (Height, Width) == (0, 0), then use dynamic field.
+/// Otherwise use static field.
 template <typename PType, typename VelocityType, typename VelocityFlowType,
           size_t Height = 0, size_t Width = 0>
 class BaseFluidSimulation : virtual public FluidSimulationInterface {
@@ -220,7 +223,7 @@ protected:
     Matrix<int> dirs{};
     int UT = 0;
 
-    std::mt19937 rnd{1337};
+    std::mt19937_64 rnd{1337};
 
     Fixed<> random01() {
         return Fixed<>::from_raw((rnd() & ((1LL << Fixed<>::K) - 1)));

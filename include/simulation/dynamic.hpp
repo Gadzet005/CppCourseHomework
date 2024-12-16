@@ -2,6 +2,7 @@
 
 #include <simulation/base.hpp>
 
+/// @brief Fluid simulation with dynamic field.
 template <typename PType, typename VelocityType, typename VelocityFlowType>
 class DynamicFluidSimulation
     : public BaseFluidSimulation<PType, VelocityType, VelocityFlowType> {
@@ -10,6 +11,8 @@ public:
         : BaseFluidSimulation<PType, VelocityType, VelocityFlowType>(
               state.getFieldHeight(), state.getFieldWidth(), state.g,
               state.rho) {
+        // copy hell
+
         this->UT = state.UT;
 
         this->field.resize(this->height, std::vector<char>(this->width));

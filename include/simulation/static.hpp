@@ -2,6 +2,7 @@
 
 #include <simulation/base.hpp>
 
+/// @brief Fluid simulation with static field.
 template <typename PType, typename VelocityType, typename VelocityFlowType,
           size_t Height, size_t Width>
 class StaticFluidSimulation
@@ -11,6 +12,8 @@ public:
     StaticFluidSimulation(const FluidSimulationState &state)
         : BaseFluidSimulation<PType, VelocityType, VelocityFlowType, Height,
                               Width>(Height, Width, state.g, state.rho) {
+        // copy hell
+
         this->UT = state.UT;
         for (size_t x = 0; x < this->height; ++x) {
             for (size_t y = 0; y < this->width; ++y) {

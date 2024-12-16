@@ -19,6 +19,7 @@ int main(int argc, char* argv[]) {
     FluidSimulationState state;
 
     if (!args.filePath.empty()) {
+        // Load initial state of simulation from text file.
         ifstream in;
         in.open(args.filePath);
         if (!in.is_open()) {
@@ -28,6 +29,7 @@ int main(int argc, char* argv[]) {
         state = loadFluidSimulationStartState(in);
         cout << "Successfully loaded start state of simulation." << endl;
     } else {
+        // Load saved state of simulation from bin file.
         ifstream in;
         in.open(args.saveFile, ios::binary);
         if (!in.is_open()) {
@@ -41,6 +43,7 @@ int main(int argc, char* argv[]) {
              << tickCount << "." << endl;
     }
 
+    // Create simulation.
     FactoryContext ctx = {
         state.getFieldHeight(), state.getFieldWidth(), args.pType,
         args.velocityType,      args.velocityFlowType, state};
@@ -61,6 +64,7 @@ int main(int argc, char* argv[]) {
 
         tickCount++;
         if (tickCount % args.saveRate == 0) {
+            // Save state of simulation to bin file.
             string saveFilePath = args.saveDir + "/" + to_string(tickCount);
             ofstream out;
             out.open(saveFilePath, ios::binary);

@@ -2,7 +2,7 @@
 
 using namespace std;
 
-string toString(const Type& type) {
+string to_string(const Type& type) {
     switch (type.typeId) {
         case TypeId::doubleType:
             return "double";

@@ -2,6 +2,9 @@
 
 #include <iostream>
 
+/// @brief Real number.
+/// @tparam St store type (int, long long, ...)
+/// @tparam _K bit quantity for fractional part.
 template <typename St, size_t _K>
 struct BaseFixed {
     using StoreType = St;
@@ -50,10 +53,12 @@ struct BaseFixed {
         return BaseFixed::from_raw(a.v - b.v);
     }
 
+    // TODO: remove __int128
     friend BaseFixed operator*(BaseFixed a, BaseFixed b) {
         return BaseFixed::from_raw(((__int128_t)a.v * b.v) >> K);
     }
 
+    // TODO: remove __int128
     friend BaseFixed operator/(BaseFixed a, BaseFixed b) {
         return BaseFixed::from_raw(((__int128_t)a.v << K) / b.v);
     }

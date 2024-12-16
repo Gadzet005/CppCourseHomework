@@ -28,4 +28,4 @@ constexpr Type fastFixedType(size_t n, size_t k) {
     return Type(TypeId::fastFixedType, n, k);
 }
 
-std::string toString(const Type& type);
+std::string to_string(const Type& type);

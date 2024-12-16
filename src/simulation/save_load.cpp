@@ -6,29 +6,33 @@
 using namespace std;
 
 FluidSimulationState loadFluidSimulationStartState(istream& in) {
-    size_t height, width;
-    in >> height >> width;
-    auto state = FluidSimulationState(height, width);
-
-    in >> state.g;
+    Fixed<> g;
+    in >> g;
 
     size_t rhoCount;
     in >> rhoCount;
 
+    array<Fixed<>, rhoSize> rho;
     for (size_t i = 0; i < rhoCount; ++i) {
         in.ignore(numeric_limits<streamsize>::max(), '\n');
         size_t idx = static_cast<size_t>(in.get());
-        in >> state.rho[idx];
+        in >> rho[idx];
     }
 
+    size_t height, width;
+    in >> height >> width;
+    DynamicMatrix<char> field(height, vector<char>(width));
     for (size_t x = 0; x < height; ++x) {
         in.ignore(numeric_limits<streamsize>::max(), '\n');
         for (size_t y = 0; y < width; ++y) {
-            state.field[x][y] = in.get();
+            field[x][y] = in.get();
         }
     }
 
-    state.initStartState();
+    FluidSimulationState state(std::move(field));
+    state.g = g;
+    state.rho = std::move(rho);
+
     return state;
 }
 

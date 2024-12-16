@@ -32,5 +32,5 @@ struct Store<64> {
 
 }  // namespace FixedInternal
 
-template <size_t N = 32, size_t K = 16>
+template <size_t N = 64, size_t K = 32>
 using Fixed = BaseFixed<typename FixedInternal::Store<N>::Type, K>;
