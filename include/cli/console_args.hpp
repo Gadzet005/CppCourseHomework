@@ -9,8 +9,10 @@ struct ConsoleArgs {
     Type velocityType;
     Type velocityFlowType;
     std::string saveDir = "./save";
-    size_t saveRate = 100;
     std::string saveFile;
+    unsigned long saveRate = 100;
+    unsigned long maxIterations = 10000;
+    bool quiet = false;
 
     /// @brief Validate console args.
     /// @return result of validation and message, if not successful.

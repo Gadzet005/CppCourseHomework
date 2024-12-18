@@ -9,7 +9,7 @@ constexpr std::array<std::pair<int, int>, 4> deltas{
     {{-1, 0}, {1, 0}, {0, -1}, {0, 1}}};
 
 template <typename T, size_t N, size_t M>
-using StaticMatrix = std::array<std::array<T, M>, N>;
+using StaticMatrix = T[N][M];
 
 template <typename T>
 using DynamicMatrix = std::vector<std::vector<T>>;

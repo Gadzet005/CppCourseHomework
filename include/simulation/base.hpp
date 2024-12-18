@@ -31,7 +31,8 @@ protected:
 
 public:
     bool step() override {
-        Fixed<> total_delta_p = 0;
+        PType total_delta_p = 0;
+
         // Apply external forces
         for (size_t x = 0; x < height; ++x) {
             for (size_t y = 0; y < width; ++y) {
@@ -42,15 +43,19 @@ public:
         }
 
         // Apply forces from p
-        old_p = p;
+        for (size_t x = 0; x < height; ++x) {
+            for (size_t y = 0; y < width; ++y) {
+                old_p[x][y] = p[x][y];
+            }
+        }
+
         for (size_t x = 0; x < height; ++x) {
             for (size_t y = 0; y < width; ++y) {
                 if (field[x][y] == '#') continue;
                 for (auto [dx, dy] : deltas) {
                     int nx = x + dx, ny = y + dy;
                     if (field[nx][ny] != '#' && old_p[nx][ny] < old_p[x][y]) {
-                        PType delta_p = old_p[x][y] - old_p[nx][ny];
-                        PType force = delta_p;
+                        PType force = old_p[x][y] - old_p[nx][ny];
                         VelocityType &contr = velocity.get(nx, ny, -dx, -dy);
                         if (contr * VelocityType(rho[(int)field[nx][ny]]) >=
                             force) {
@@ -73,21 +78,21 @@ public:
 
         // Make flow from velocities
         velocity_flow.reset();
-        bool prop = false;
+        bool any_prop;
         do {
             UT += 2;
-            prop = 0;
+            any_prop = false;
             for (size_t x = 0; x < height; ++x) {
                 for (size_t y = 0; y < width; ++y) {
                     if (field[x][y] != '#' && last_use[x][y] != UT) {
                         auto [t, local_prop, _] = propagate_flow(x, y, 1);
                         if (t > 0) {
-                            prop = 1;
+                            any_prop = true;
                         }
                     }
                 }
             }
-        } while (prop);
+        } while (any_prop);
 
         // Recalculate p with kinetic energy
         for (size_t x = 0; x < height; ++x) {
@@ -102,7 +107,9 @@ public:
                         velocity.get(x, y, dx, dy) = new_v;
                         PType force = (old_v - new_v) *
                                       VelocityType(rho[(int)field[x][y]]);
-                        if (field[x][y] == '.') force *= 0.8;
+                        if (field[x][y] == '.') {
+                            force *= 0.8;
+                        }
                         if (field[x + dx][y + dy] == '#') {
                             p[x][y] += force / dirs[x][y];
                             total_delta_p += force / dirs[x][y];
@@ -116,7 +123,7 @@ public:
         }
 
         UT += 2;
-        prop = false;
+        bool prop = false;
         for (size_t x = 0; x < height; ++x) {
             for (size_t y = 0; y < width; ++y) {
                 if (field[x][y] != '#' && last_use[x][y] != UT) {
@@ -140,6 +147,7 @@ public:
             }
             out << '\n';
         }
+        out << std::flush;
     }
 
     virtual FluidSimulationState getState() const override {
@@ -184,9 +192,9 @@ protected:
         }
 
         void reset() {
-            for (size_t i = 0; i < v.size(); i++) {
-                for (size_t j = 0; j < v[0].size(); j++) {
-                    v[i][j].fill(0);
+            for (auto &row : v) {
+                for (auto &elem : row) {
+                    elem.fill(0);
                 }
             }
         }
@@ -250,49 +258,52 @@ protected:
                                                                   Fixed<> lim) {
         last_use[x][y] = UT - 1;
         Fixed<> ret = 0;
+
         for (auto [dx, dy] : deltas) {
             int nx = x + dx, ny = y + dy;
-            if (field[nx][ny] != '#' && last_use[nx][ny] < UT) {
-                auto cap = velocity.get(x, y, dx, dy);
-                auto flow = velocity_flow.get(x, y, dx, dy);
-                if (flow == cap) {
-                    continue;
-                }
-                VelocityFlowType vp =
-                    std::min(VelocityType(lim), cap - VelocityType(flow));
-                if (last_use[nx][ny] == UT - 1) {
-                    velocity_flow.add(x, y, dx, dy, vp);
-                    last_use[x][y] = UT;
-                    return {vp, 1, {nx, ny}};
-                }
-                auto [t, prop, end] = propagate_flow(nx, ny, vp);
-                ret += t;
-                if (prop) {
-                    velocity_flow.add(x, y, dx, dy, VelocityFlowType(t));
-                    last_use[x][y] = UT;
-                    return {t, prop && end != std::pair(x, y), end};
-                }
+            if (field[nx][ny] == '#' || last_use[nx][ny] >= UT) {
+                continue;
+            };
+
+            auto cap = velocity.get(x, y, dx, dy);
+            auto flow = velocity_flow.get(x, y, dx, dy);
+            if (flow == cap) {
+                continue;
+            }
+
+            VelocityFlowType vp =
+                std::min(VelocityType(lim), cap - VelocityType(flow));
+            if (last_use[nx][ny] == UT - 1) {
+                velocity_flow.add(x, y, dx, dy, vp);
+                last_use[x][y] = UT;
+                return {vp, true, {nx, ny}};
+            }
+
+            auto [t, prop, end] = propagate_flow(nx, ny, vp);
+
+            ret += t;
+            if (prop) {
+                velocity_flow.add(x, y, dx, dy, VelocityFlowType(t));
+                last_use[x][y] = UT;
+                return {t, prop && end != std::pair(x, y), end};
             }
         }
+
         last_use[x][y] = UT;
-        return {ret, 0, {0, 0}};
+        return {ret, false, {0, 0}};
     }
 
     void propagate_stop(int x, int y, bool force = false) {
         if (!force) {
-            bool stop = true;
             for (auto [dx, dy] : deltas) {
                 int nx = x + dx, ny = y + dy;
                 if (field[nx][ny] != '#' && last_use[nx][ny] < UT - 1 &&
                     velocity.get(x, y, dx, dy) > 0) {
-                    stop = false;
-                    break;
+                    return;
                 }
             }
-            if (!stop) {
-                return;
-            }
         }
+
         last_use[x][y] = UT;
         for (auto [dx, dy] : deltas) {
             int nx = x + dx, ny = y + dy;
@@ -308,6 +319,7 @@ protected:
         last_use[x][y] = UT - is_first;
         bool ret = false;
         int nx = -1, ny = -1;
+
         do {
             std::array<Fixed<>, deltas.size()> tres;
             Fixed<> sum = 0;
@@ -342,6 +354,7 @@ protected:
 
             ret = (last_use[nx][ny] == UT - 1 || propagate_move(nx, ny, false));
         } while (!ret);
+
         last_use[x][y] = UT;
         for (size_t i = 0; i < deltas.size(); ++i) {
             auto [dx, dy] = deltas[i];
@@ -351,13 +364,12 @@ protected:
                 propagate_stop(nx, ny);
             }
         }
-        if (ret) {
-            if (!is_first) {
-                ParticleParams pp(*this);
-                pp.swap_with(x, y);
-                pp.swap_with(nx, ny);
-                pp.swap_with(x, y);
-            }
+
+        if (ret && !is_first) {
+            ParticleParams pp(*this);
+            pp.swap_with(x, y);
+            pp.swap_with(nx, ny);
+            pp.swap_with(x, y);
         }
         return ret;
     }

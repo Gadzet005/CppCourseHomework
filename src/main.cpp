@@ -8,6 +8,9 @@
 using namespace std;
 
 int main(int argc, char* argv[]) {
+    ios_base::sync_with_stdio(false);
+    cin.tie(NULL);
+
     auto args = parseConsoleArguments(argc, argv);
     auto [valid, error] = args.validate();
     if (!valid) {
@@ -53,14 +56,19 @@ int main(int argc, char* argv[]) {
     cout << "Press Ctrl+C to stop." << endl;
     getchar();
 
-    simulation->print_field();
-    while (true) {
+    if (!args.quiet) {
+        simulation->print_field();
+    }
+
+    for (unsigned long i = 0; i < args.maxIterations; i++) {
         if (!simulation->step()) {
             continue;
         }
 
-        cout << "Tick " << tickCount << ":\n";
-        simulation->print_field();
+        cout << "Tick " << tickCount << endl;
+        if (!args.quiet) {
+            simulation->print_field();
+        }
 
         tickCount++;
         if (tickCount % args.saveRate == 0) {
