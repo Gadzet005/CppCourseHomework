@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <array>
 #include <cassert>
+#include <queue>
 #include <random>
 #include <ranges>
 #include <simulation/common.hpp>
@@ -42,13 +43,13 @@ public:
             }
         }
 
-        // Apply forces from p
         for (size_t x = 0; x < height; ++x) {
             for (size_t y = 0; y < width; ++y) {
                 old_p[x][y] = p[x][y];
             }
         }
 
+        // Apply forces from p
         for (size_t x = 0; x < height; ++x) {
             for (size_t y = 0; y < width; ++y) {
                 if (field[x][y] == '#') continue;
@@ -79,19 +80,43 @@ public:
         // Make flow from velocities
         velocity_flow.reset();
         bool any_prop;
+        std::vector<std::pair<size_t, size_t>> current;
+        std::vector<std::pair<size_t, size_t>> next;
+        current.reserve(height * width);
+        next.reserve(height * width);
+
+        for (size_t x = 0; x < height; ++x) {
+            for (size_t y = 0; y < width; ++y) {
+                if (field[x][y] != '#') {
+                    current.push_back({x, y});
+                }
+            }
+        }
+
         do {
             UT += 2;
             any_prop = false;
-            for (size_t x = 0; x < height; ++x) {
-                for (size_t y = 0; y < width; ++y) {
-                    if (field[x][y] != '#' && last_use[x][y] != UT) {
-                        auto [t, local_prop, _] = propagate_flow(x, y, 1);
-                        if (t > 0) {
-                            any_prop = true;
+
+            for (auto [x, y] : current) {
+                if (last_use[x][y] != UT) {
+                    auto [t, local_prop, _] = propagate_flow(x, y, 1);
+                    if (t > 0) {
+                        next.push_back({x, y});
+                        for (auto [dx, dy] : deltas) {
+                            int nx = x + dx, ny = y + dy;
+                            if (field[nx][ny] != '#') {
+                                next.push_back({nx, ny});
+                            }
                         }
+                        any_prop = true;
                     }
+                } else if (flowCache[x][y] > 0) {
+                    next.push_back({x, y});
                 }
             }
+
+            swap(current, next);
+            next.clear();
         } while (any_prop);
 
         // Recalculate p with kinetic energy
@@ -231,6 +256,9 @@ protected:
     Matrix<int> dirs{};
     int UT = 0;
 
+    std::vector<std::vector<Fixed<>>> flowCache{height,
+                                                std::vector<Fixed<>>(width)};
+
     std::mt19937_64 rnd{1337};
 
     Fixed<> random01() {
@@ -276,6 +304,7 @@ protected:
             if (last_use[nx][ny] == UT - 1) {
                 velocity_flow.add(x, y, dx, dy, vp);
                 last_use[x][y] = UT;
+                flowCache[x][y] = vp;
                 return {vp, true, {nx, ny}};
             }
 
@@ -285,11 +314,13 @@ protected:
             if (prop) {
                 velocity_flow.add(x, y, dx, dy, VelocityFlowType(t));
                 last_use[x][y] = UT;
+                flowCache[x][y] = t;
                 return {t, prop && end != std::pair(x, y), end};
             }
         }
 
         last_use[x][y] = UT;
+        flowCache[x][y] = ret;
         return {ret, false, {0, 0}};
     }
 
