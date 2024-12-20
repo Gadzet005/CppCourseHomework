@@ -5,18 +5,22 @@
 
 using namespace std;
 
+// clang-format off
 constexpr struct option longOptions[] = {
-    {"file", required_argument, nullptr, 'f'},
-    {"p-type", required_argument, nullptr, 'p'},
-    {"v-type", required_argument, nullptr, 'v'},
-    {"v-flow-type", required_argument, nullptr, 't'},
-    {"save-dir", required_argument, nullptr, 's'},
-    {"save-rate", required_argument, nullptr, 'r'},
-    {"use-save", required_argument, nullptr, 'u'},
-    {"max-iterations", required_argument, nullptr, 'm'},
-    {nullptr, 0, nullptr, 0}};
+    {"input",           required_argument, nullptr, 'i'},
+    {"p-type",          required_argument, nullptr, 'p'},
+    {"v-type",          required_argument, nullptr, 'v'},
+    {"v-flow-type",     required_argument, nullptr, 'f'},
+    {"save",            required_argument, nullptr, 's'},
+    {"save-dir",        required_argument, nullptr, 'd'},
+    {"save-rate",       required_argument, nullptr, 'r'},
+    {"max-iterations",  required_argument, nullptr, 'm'},
+    {"threads",         required_argument, nullptr, 't'},
+    {nullptr, 0, nullptr, 0}
+};
+// clang-format on
 
-const char* shortOptions = "f:p:v:t:s:r:u:m:q";
+const char* shortOptions = "i:p:v:f:s:d:r:m:t:q";
 
 ConsoleArgs parseConsoleArguments(int argc, char* argv[]) {
     ConsoleArgs args;
@@ -25,8 +29,8 @@ ConsoleArgs parseConsoleArguments(int argc, char* argv[]) {
     while ((c = getopt_long(argc, argv, shortOptions, longOptions, NULL)) !=
            -1) {
         switch (c) {
-            case 'f':
-                args.filePath = optarg;
+            case 'i':
+                args.inputFile = optarg;
                 break;
             case 'p':
                 args.pType = parseType(optarg);
@@ -34,16 +38,16 @@ ConsoleArgs parseConsoleArguments(int argc, char* argv[]) {
             case 'v':
                 args.velocityType = parseType(optarg);
                 break;
-            case 't':
+            case 'f':
                 args.velocityFlowType = parseType(optarg);
                 break;
-            case 's':
+            case 'd':
                 args.saveDir = optarg;
                 break;
             case 'r':
                 args.saveRate = std::stoul(optarg);
                 break;
-            case 'u':
+            case 's':
                 args.saveFile = optarg;
                 break;
             case 'm':
@@ -51,6 +55,9 @@ ConsoleArgs parseConsoleArguments(int argc, char* argv[]) {
                 break;
             case 'q':
                 args.quiet = true;
+                break;
+            case 't':
+                args.threads = std::stoul(optarg);
                 break;
             case -1:
             default:
@@ -62,15 +69,18 @@ ConsoleArgs parseConsoleArguments(int argc, char* argv[]) {
 }
 
 pair<bool, string> ConsoleArgs::validate() {
-    if (!filePath.empty() && !saveFile.empty()) {
+    if (!inputFile.empty() && !saveFile.empty()) {
         return {false,
                 "Both --file and --use-save options cannot be provided."};
     }
-    if (filePath.empty() && saveFile.empty()) {
+    if (inputFile.empty() && saveFile.empty()) {
         return {false, "--file or --use-save option is required."};
     }
     if (saveRate == 0) {
         return {false, "--save-rate option must be greater than 0."};
+    }
+    if (threads == 0) {
+        return {false, "--threads option must be greater than 0."};
     }
 
     return {true, ""};

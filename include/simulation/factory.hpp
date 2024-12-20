@@ -15,6 +15,8 @@
 struct FactoryContext {
     size_t height, width;
     Type pType, velocityType, velocityFlowType;
+
+    unsigned threads = 1;
     FluidSimulationState initialState;
 };
 
@@ -36,8 +38,8 @@ std::unique_ptr<FluidSimulationInterface> create(const FactoryContext& ctx) {
     std::cout << "Used static field(" << Height << ", " << Width << ")"
               << std::endl;
     return std::make_unique<StaticFluidSimulation<
-        PType, VelocityType, VelocityFlowType, Height, Width>>(
-        ctx.initialState);
+        PType, VelocityType, VelocityFlowType, Height, Width>>(ctx.initialState,
+                                                               ctx.threads);
 }
 }  // namespace StaticFieldFactory
 
@@ -64,7 +66,7 @@ std::unique_ptr<FluidSimulationInterface> create(const FactoryContext& ctx) {
               << std::endl;
     return std::make_unique<
         DynamicFluidSimulation<PType, VelocityType, VelocityFlowType>>(
-        ctx.initialState);
+        ctx.initialState, ctx.threads);
 }
 }  // namespace SizeFactory
 

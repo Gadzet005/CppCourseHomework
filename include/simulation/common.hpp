@@ -30,6 +30,7 @@ struct FluidSimulationState {
     DynamicMatrix<int> last_use;
     DynamicMatrix<int> dirs;
     int UT = 0;
+    unsigned tickCount = 0;
 
     FluidSimulationState() = default;
 

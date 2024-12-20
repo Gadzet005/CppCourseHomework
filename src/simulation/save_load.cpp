@@ -36,7 +36,7 @@ FluidSimulationState loadFluidSimulationStartState(istream& in) {
     return state;
 }
 
-pair<unsigned, FluidSimulationState> loadFluidSimulationState(istream& in) {
+FluidSimulationState loadFluidSimulationState(istream& in) {
     unsigned tickCount;
     size_t height, width;
 
@@ -45,6 +45,7 @@ pair<unsigned, FluidSimulationState> loadFluidSimulationState(istream& in) {
     in.read((char*)&width, sizeof(width));
 
     FluidSimulationState state = FluidSimulationState(height, width);
+    state.tickCount = tickCount;
 
     int64_t raw;
 
@@ -74,12 +75,11 @@ pair<unsigned, FluidSimulationState> loadFluidSimulationState(istream& in) {
         }
     }
 
-    return make_pair(tickCount, state);
+    return state;
 }
 
-void saveFluidSimulationState(ostream& out, const FluidSimulationState& state,
-                              unsigned tickCount) {
-    out.write((char*)&tickCount, sizeof(tickCount));
+void saveFluidSimulationState(ostream& out, const FluidSimulationState& state) {
+    out.write((char*)&state.tickCount, sizeof(state.tickCount));
 
     size_t height = state.getFieldHeight();
     size_t width = state.getFieldWidth();

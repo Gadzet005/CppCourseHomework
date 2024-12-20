@@ -4,15 +4,27 @@
 #include <string>
 
 struct ConsoleArgs {
-    std::string filePath;
+    // file with simulation start state description
+    std::string inputFile;
+
     Type pType;
     Type velocityType;
     Type velocityFlowType;
+
+    // dir for saves
     std::string saveDir = "./save";
+    // file to load save
     std::string saveFile;
-    unsigned long saveRate = 100;
-    unsigned long maxIterations = 10000;
+    // save rate (in ticks)
+    unsigned saveRate = 100;
+
+    // max simulation iterations (iteration != tick)
+    unsigned maxIterations = 10000;
+    // don't print simulation field to stdout each tick
     bool quiet = false;
+
+    // number of threads for parallel computation
+    unsigned threads = 1;
 
     /// @brief Validate console args.
     /// @return result of validation and message, if not successful.

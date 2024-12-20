@@ -8,6 +8,7 @@
 #include <ranges>
 #include <simulation/common.hpp>
 #include <simulation/interface.hpp>
+#include <thread/thread_pool.hpp>
 #include <type_traits>
 #include <types/fixed.hpp>
 #include <vector>
@@ -35,13 +36,17 @@ public:
         PType total_delta_p = 0;
 
         // Apply external forces
-        for (size_t x = 0; x < height; ++x) {
-            for (size_t y = 0; y < width; ++y) {
-                if (field[x][y] == '#') continue;
-                if (field[x + 1][y] != '#')
-                    velocity.add(x, y, 1, 0, VelocityType(g));
+        auto computeRow = [this](size_t x) {
+            for (size_t y = 0; y < this->width; ++y) {
+                if (this->field[x][y] == '#') continue;
+                if (this->field[x + 1][y] != '#')
+                    this->velocity.add(x, y, 1, 0, VelocityType(this->g));
             }
+        };
+        for (size_t x = 0; x < height; x++) {
+            pool.addTask(computeRow, x);
         }
+        pool.waitAll();
 
         for (size_t x = 0; x < height; ++x) {
             for (size_t y = 0; y < width; ++y) {
@@ -162,6 +167,10 @@ public:
             }
         }
 
+        if (prop) {
+            tickCount++;
+        }
+
         return prop;
     }
 
@@ -175,11 +184,14 @@ public:
         out << std::flush;
     }
 
+    unsigned getTickCount() const override { return tickCount; }
+
     virtual FluidSimulationState getState() const override {
         FluidSimulationState state(this->height, this->width);
         state.g = this->g;
         state.rho = this->rho;
         state.UT = this->UT;
+        state.tickCount = this->tickCount;
 
         for (size_t x = 0; x < this->height; ++x) {
             for (size_t y = 0; y < this->width; ++y) {
@@ -193,13 +205,20 @@ public:
                 }
             }
         }
+
         return state;
     }
 
 protected:
     BaseFluidSimulation(size_t height, size_t width, Fixed<> g,
-                        std::array<Fixed<>, rhoSize> rho)
-        : height(height), width(width), g(g), rho(rho) {}
+                        std::array<Fixed<>, rhoSize> rho,
+                        unsigned tickCount = 0, unsigned threads = 1)
+        : height(height),
+          width(width),
+          g(g),
+          rho(rho),
+          tickCount(tickCount),
+          pool(threads) {}
 
     template <typename T>
     struct VectorField {
@@ -255,6 +274,10 @@ protected:
     Matrix<int> last_use{};
     Matrix<int> dirs{};
     int UT = 0;
+
+    unsigned tickCount = 0;
+
+    ThreadPool pool;
 
     std::vector<std::vector<Fixed<>>> flowCache{height,
                                                 std::vector<Fixed<>>(width)};

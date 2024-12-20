@@ -9,9 +9,11 @@ class StaticFluidSimulation
     : public BaseFluidSimulation<PType, VelocityType, VelocityFlowType, Height,
                                  Width> {
 public:
-    StaticFluidSimulation(const FluidSimulationState &state)
+    StaticFluidSimulation(const FluidSimulationState &state,
+                          unsigned threads = 1)
         : BaseFluidSimulation<PType, VelocityType, VelocityFlowType, Height,
-                              Width>(Height, Width, state.g, state.rho) {
+                              Width>(Height, Width, state.g, state.rho,
+                                     state.tickCount, threads) {
         // copy hell
 
         this->UT = state.UT;

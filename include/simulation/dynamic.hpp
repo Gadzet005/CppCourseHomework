@@ -7,10 +7,11 @@ template <typename PType, typename VelocityType, typename VelocityFlowType>
 class DynamicFluidSimulation
     : public BaseFluidSimulation<PType, VelocityType, VelocityFlowType> {
 public:
-    DynamicFluidSimulation(const FluidSimulationState &state)
+    DynamicFluidSimulation(const FluidSimulationState &state,
+                           unsigned threads = 1)
         : BaseFluidSimulation<PType, VelocityType, VelocityFlowType>(
-              state.getFieldHeight(), state.getFieldWidth(), state.g,
-              state.rho) {
+              state.getFieldHeight(), state.getFieldWidth(), state.g, state.rho,
+              state.tickCount, threads) {
         // copy hell
 
         this->UT = state.UT;

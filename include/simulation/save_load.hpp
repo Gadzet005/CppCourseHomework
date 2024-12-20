@@ -8,11 +8,8 @@
 FluidSimulationState loadFluidSimulationStartState(std::istream& in);
 
 /// @brief Load any state of fluid simulation from bin file.
-/// @return Tick count and state.
-std::pair<unsigned, FluidSimulationState> loadFluidSimulationState(
-    std::istream& in);
+FluidSimulationState loadFluidSimulationState(std::istream& in);
 
 /// @brief Save any state of fluid simulation to bin file.
 void saveFluidSimulationState(std::ostream& out,
-                              const FluidSimulationState& state,
-                              unsigned tickCount);
+                              const FluidSimulationState& state);
