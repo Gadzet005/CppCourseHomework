@@ -6,13 +6,17 @@ cmake -S . -B build -DTYPES="FIXED(64, 32), DOUBLE, FAST_FIXED(50, 5)" -DSIZES="
 ```
 - Start simulation with config text file (input.example.txt)
 ```
-./main --file "./env/input.txt" --p-type="fixed(64, 32)" --v-type="fixed(64, 32)" --v-flow-type="fixed(64, 32)"
+./main -i "./env/input.txt" -p "FIXED(64, 32)" -v "FAST_FIXED(50, 5)" -f "DOUBLE"
 ```
 - Save simulation state to binary file
 ```
-./main --file "./env/input.txt" --save-dir="./save" --save-rate=100
+./main -i "./env/input.txt" -d "./save" -r 100
 ```
 - Load simulation state from binary file
 ```
-./main --use-save="./save/1"
+./main -s "./save/1"
+```
+- Configure number of threads (default: 1)
+```
+./main -i "./env/input.txt" -t 10
 ```
