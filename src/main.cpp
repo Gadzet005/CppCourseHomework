@@ -33,7 +33,7 @@ int main(int argc, char* argv[]) {
 
     cout << "Tick " << simulation->getTickCount() << endl;
     if (!args.quiet) {
-        simulation->print_field();
+        simulation->printField();
     }
 
     while (simulation->getTickCount() < args.maxIterations) {
@@ -43,7 +43,7 @@ int main(int argc, char* argv[]) {
 
         cout << "Tick " << simulation->getTickCount() << endl;
         if (!args.quiet) {
-            simulation->print_field();
+            simulation->printField();
         }
 
         if (simulation->getTickCount() != 0 &&

@@ -36,7 +36,7 @@ struct BaseFixed {
 
     StoreType v;
 
-    static constexpr BaseFixed from_raw(StoreType x) {
+    static constexpr BaseFixed fromRaw(StoreType x) {
         BaseFixed ret;
         ret.v = x;
         return ret;
@@ -46,21 +46,21 @@ struct BaseFixed {
     bool operator==(const BaseFixed &) const = default;
 
     friend BaseFixed operator+(BaseFixed a, BaseFixed b) {
-        return BaseFixed::from_raw(a.v + b.v);
+        return BaseFixed::fromRaw(a.v + b.v);
     }
 
     friend BaseFixed operator-(BaseFixed a, BaseFixed b) {
-        return BaseFixed::from_raw(a.v - b.v);
+        return BaseFixed::fromRaw(a.v - b.v);
     }
 
     // TODO: remove __int128
     friend BaseFixed operator*(BaseFixed a, BaseFixed b) {
-        return BaseFixed::from_raw(((__int128_t)a.v * b.v) >> K);
+        return BaseFixed::fromRaw(((__int128_t)a.v * b.v) >> K);
     }
 
     // TODO: remove __int128
     friend BaseFixed operator/(BaseFixed a, BaseFixed b) {
-        return BaseFixed::from_raw(((__int128_t)a.v << K) / b.v);
+        return BaseFixed::fromRaw(((__int128_t)a.v << K) / b.v);
     }
 
     friend BaseFixed &operator+=(BaseFixed &a, BaseFixed b) {
@@ -79,9 +79,7 @@ struct BaseFixed {
         return a = a / b;
     }
 
-    friend BaseFixed operator-(BaseFixed x) {
-        return BaseFixed::from_raw(-x.v);
-    }
+    friend BaseFixed operator-(BaseFixed x) { return BaseFixed::fromRaw(-x.v); }
 
     friend BaseFixed abs(BaseFixed x) {
         if (x.v < 0) {

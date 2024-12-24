@@ -18,7 +18,7 @@
 /// Otherwise use static field.
 template <typename PType, typename VelocityType, typename VelocityFlowType,
           size_t Height = 0, size_t Width = 0>
-class BaseFluidSimulation : virtual public FluidSimulationInterface {
+class FluidSimulation : virtual public FluidSimulationInterface {
 protected:
     static constexpr bool isDynamic = Height == 0 && Width == 0;
 
@@ -32,6 +32,49 @@ protected:
                          StaticVectorMatrix<T, Height, Width>>::type;
 
 public:
+    FluidSimulation(const FluidSimulationState &state, unsigned threads = 1)
+        : height(state.getFieldHeight()),
+          width(state.getFieldWidth()),
+          g(state.g),
+          rho(state.rho),
+          UT(state.UT),
+          tickCount(state.tickCount),
+          pool(threads) {
+        // Allocate memory if simulation is dynamic.
+        if constexpr (isDynamic) {
+            this->field.resize(this->height, std::vector<char>(this->width));
+            this->p.resize(this->height, std::vector<PType>(this->width));
+            this->dirs.resize(this->height, std::vector<int>(this->width, 0));
+            this->lastUse.resize(this->height,
+                                 std::vector<int>(this->width, 0));
+            this->velocity.v.resize(
+                this->height,
+                std::vector<std::array<VelocityType, deltas.size()>>(
+                    this->width, std::array<VelocityType, deltas.size()>()));
+            this->velocityFlow.v.resize(
+                this->height,
+                std::vector<std::array<VelocityFlowType, deltas.size()>>(
+                    this->width,
+                    std::array<VelocityFlowType, deltas.size()>()));
+            this->old_p = this->p;
+        }
+
+        // Copy state.
+        for (size_t x = 0; x < this->height; ++x) {
+            for (size_t y = 0; y < this->width; ++y) {
+                this->field[x][y] = state.field[x][y];
+                this->p[x][y] = PType(state.p[x][y]);
+                this->dirs[x][y] = state.dirs[x][y];
+                this->lastUse[x][y] = state.lastUse[x][y];
+
+                for (size_t k = 0; k < deltas.size(); k++) {
+                    this->velocity.v[x][y][k] =
+                        VelocityType(state.velocity[x][y][k]);
+                }
+            }
+        }
+    }
+
     bool step() override {
         PType total_delta_p = 0;
 
@@ -83,7 +126,7 @@ public:
         }
 
         // Make flow from velocities
-        velocity_flow.reset();
+        velocityFlow.reset();
         bool any_prop;
         std::vector<std::pair<size_t, size_t>> current;
         std::vector<std::pair<size_t, size_t>> next;
@@ -103,8 +146,8 @@ public:
             any_prop = false;
 
             for (auto [x, y] : current) {
-                if (last_use[x][y] != UT) {
-                    auto [t, local_prop, _] = propagate_flow(x, y, 1);
+                if (lastUse[x][y] != UT) {
+                    auto [t, local_prop, _] = propagateFlow(x, y, 1);
                     if (t > 0) {
                         next.push_back({x, y});
                         for (auto [dx, dy] : deltas) {
@@ -131,7 +174,7 @@ public:
                 for (auto [dx, dy] : deltas) {
                     VelocityType old_v = velocity.get(x, y, dx, dy);
                     VelocityType new_v =
-                        VelocityType(velocity_flow.get(x, y, dx, dy));
+                        VelocityType(velocityFlow.get(x, y, dx, dy));
                     if (old_v > 0) {
                         assert(new_v <= old_v);
                         velocity.get(x, y, dx, dy) = new_v;
@@ -156,12 +199,12 @@ public:
         bool prop = false;
         for (size_t x = 0; x < height; ++x) {
             for (size_t y = 0; y < width; ++y) {
-                if (field[x][y] != '#' && last_use[x][y] != UT) {
-                    if (random01() < move_prob(x, y)) {
+                if (field[x][y] != '#' && lastUse[x][y] != UT) {
+                    if (random01() < moveProb(x, y)) {
                         prop = true;
-                        propagate_move(x, y, true);
+                        propagateMove(x, y, true);
                     } else {
-                        propagate_stop(x, y, true);
+                        propagateStop(x, y, true);
                     }
                 }
             }
@@ -174,7 +217,7 @@ public:
         return prop;
     }
 
-    void print_field(std::ostream &out) const override {
+    void printField(std::ostream &out) const override {
         for (size_t x = 0; x < height; ++x) {
             for (size_t y = 0; y < width; ++y) {
                 out << field[x][y];
@@ -198,7 +241,7 @@ public:
                 state.field[x][y] = this->field[x][y];
                 state.p[x][y] = this->p[x][y];
                 state.dirs[x][y] = this->dirs[x][y];
-                state.last_use[x][y] = this->last_use[x][y];
+                state.lastUse[x][y] = this->lastUse[x][y];
 
                 for (size_t k = 0; k < deltas.size(); k++) {
                     state.velocity[x][y][k] = this->velocity.v[x][y][k];
@@ -210,16 +253,6 @@ public:
     }
 
 protected:
-    BaseFluidSimulation(size_t height, size_t width, Fixed<> g,
-                        std::array<Fixed<>, rhoSize> rho,
-                        unsigned tickCount = 0, unsigned threads = 1)
-        : height(height),
-          width(width),
-          g(g),
-          rho(rho),
-          tickCount(tickCount),
-          pool(threads) {}
-
     template <typename T>
     struct VectorField {
         VectorMatrix<T> v;
@@ -229,10 +262,7 @@ protected:
         }
 
         T &get(int x, int y, int dx, int dy) {
-            size_t i =
-                std::ranges::find(deltas, std::pair(dx, dy)) - deltas.begin();
-            assert(i < deltas.size());
-            return v[x][y][i];
+            return v[x][y][getDeltaIndex(dx, dy)];
         }
 
         void reset() {
@@ -248,9 +278,9 @@ protected:
         char type;
         PType cur_p;
         std::array<VelocityType, deltas.size()> v;
-        BaseFluidSimulation &sim;
+        FluidSimulation &sim;
 
-        ParticleParams(BaseFluidSimulation &sim) : sim(sim) {}
+        ParticleParams(FluidSimulation &sim) : sim(sim) {}
 
         void swap_with(int x, int y) {
             std::swap(sim.field[x][y], type);
@@ -269,9 +299,9 @@ protected:
     Matrix<PType> p, old_p;
 
     VectorField<VelocityType> velocity;
-    VectorField<VelocityFlowType> velocity_flow;
+    VectorField<VelocityFlowType> velocityFlow;
 
-    Matrix<int> last_use{};
+    Matrix<int> lastUse{};
     Matrix<int> dirs{};
     int UT = 0;
 
@@ -285,15 +315,15 @@ protected:
     std::mt19937_64 rnd{1337};
 
     Fixed<> random01() {
-        return Fixed<>::from_raw((rnd() & ((1LL << Fixed<>::K) - 1)));
+        return Fixed<>::fromRaw((rnd() & ((1LL << Fixed<>::K) - 1)));
     }
 
-    Fixed<> move_prob(int x, int y) {
+    Fixed<> moveProb(int x, int y) {
         Fixed<> sum = 0;
         for (size_t i = 0; i < deltas.size(); ++i) {
             auto [dx, dy] = deltas[i];
             int nx = x + dx, ny = y + dy;
-            if (field[nx][ny] == '#' || last_use[nx][ny] == UT) {
+            if (field[nx][ny] == '#' || lastUse[nx][ny] == UT) {
                 continue;
             }
             auto v = velocity.get(x, y, dx, dy);
@@ -305,72 +335,72 @@ protected:
         return sum;
     }
 
-    std::tuple<Fixed<>, bool, std::pair<int, int>> propagate_flow(int x, int y,
-                                                                  Fixed<> lim) {
-        last_use[x][y] = UT - 1;
+    std::tuple<Fixed<>, bool, std::pair<int, int>> propagateFlow(int x, int y,
+                                                                 Fixed<> lim) {
+        lastUse[x][y] = UT - 1;
         Fixed<> ret = 0;
 
         for (auto [dx, dy] : deltas) {
             int nx = x + dx, ny = y + dy;
-            if (field[nx][ny] == '#' || last_use[nx][ny] >= UT) {
+            if (field[nx][ny] == '#' || lastUse[nx][ny] >= UT) {
                 continue;
             };
 
             auto cap = velocity.get(x, y, dx, dy);
-            auto flow = velocity_flow.get(x, y, dx, dy);
+            auto flow = velocityFlow.get(x, y, dx, dy);
             if (flow == cap) {
                 continue;
             }
 
             VelocityFlowType vp =
                 std::min(VelocityType(lim), cap - VelocityType(flow));
-            if (last_use[nx][ny] == UT - 1) {
-                velocity_flow.add(x, y, dx, dy, vp);
-                last_use[x][y] = UT;
+            if (lastUse[nx][ny] == UT - 1) {
+                velocityFlow.add(x, y, dx, dy, vp);
+                lastUse[x][y] = UT;
                 flowCache[x][y] = vp;
                 return {vp, true, {nx, ny}};
             }
 
-            auto [t, prop, end] = propagate_flow(nx, ny, vp);
+            auto [t, prop, end] = propagateFlow(nx, ny, vp);
 
             ret += t;
             if (prop) {
-                velocity_flow.add(x, y, dx, dy, VelocityFlowType(t));
-                last_use[x][y] = UT;
+                velocityFlow.add(x, y, dx, dy, VelocityFlowType(t));
+                lastUse[x][y] = UT;
                 flowCache[x][y] = t;
                 return {t, prop && end != std::pair(x, y), end};
             }
         }
 
-        last_use[x][y] = UT;
+        lastUse[x][y] = UT;
         flowCache[x][y] = ret;
         return {ret, false, {0, 0}};
     }
 
-    void propagate_stop(int x, int y, bool force = false) {
+    void propagateStop(int x, int y, bool force = false) {
         if (!force) {
             for (auto [dx, dy] : deltas) {
                 int nx = x + dx, ny = y + dy;
-                if (field[nx][ny] != '#' && last_use[nx][ny] < UT - 1 &&
+                if (field[nx][ny] != '#' && lastUse[nx][ny] < UT - 1 &&
                     velocity.get(x, y, dx, dy) > 0) {
                     return;
                 }
             }
         }
 
-        last_use[x][y] = UT;
+        lastUse[x][y] = UT;
         for (auto [dx, dy] : deltas) {
             int nx = x + dx, ny = y + dy;
-            if (field[nx][ny] == '#' || last_use[nx][ny] == UT ||
+            if (field[nx][ny] == '#' || lastUse[nx][ny] == UT ||
                 velocity.get(x, y, dx, dy) > 0) {
                 continue;
             }
-            propagate_stop(nx, ny);
+            propagateStop(nx, ny);
         }
     }
 
-    bool propagate_move(int x, int y, bool is_first) {
-        last_use[x][y] = UT - is_first;
+    bool propagateMove(int x, int y, bool is_first) {
+        lastUse[x][y] = UT - is_first;
         bool ret = false;
         int nx = -1, ny = -1;
 
@@ -380,7 +410,7 @@ protected:
             for (size_t i = 0; i < deltas.size(); ++i) {
                 auto [dx, dy] = deltas[i];
                 int nx = x + dx, ny = y + dy;
-                if (field[nx][ny] == '#' || last_use[nx][ny] == UT) {
+                if (field[nx][ny] == '#' || lastUse[nx][ny] == UT) {
                     tres[i] = sum;
                     continue;
                 }
@@ -404,18 +434,18 @@ protected:
             nx = x + dx;
             ny = y + dy;
             assert(velocity.get(x, y, dx, dy) > 0 && field[nx][ny] != '#' &&
-                   last_use[nx][ny] < UT);
+                   lastUse[nx][ny] < UT);
 
-            ret = (last_use[nx][ny] == UT - 1 || propagate_move(nx, ny, false));
+            ret = (lastUse[nx][ny] == UT - 1 || propagateMove(nx, ny, false));
         } while (!ret);
 
-        last_use[x][y] = UT;
+        lastUse[x][y] = UT;
         for (size_t i = 0; i < deltas.size(); ++i) {
             auto [dx, dy] = deltas[i];
             int nx = x + dx, ny = y + dy;
-            if (field[nx][ny] != '#' && last_use[nx][ny] < UT - 1 &&
+            if (field[nx][ny] != '#' && lastUse[nx][ny] < UT - 1 &&
                 velocity.get(x, y, dx, dy) < 0) {
-                propagate_stop(nx, ny);
+                propagateStop(nx, ny);
             }
         }
 

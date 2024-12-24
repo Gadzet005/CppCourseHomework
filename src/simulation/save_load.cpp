@@ -66,7 +66,7 @@ FluidSimulationState loadFluidSimulationState(istream& in) {
             state.p[i][j].v = raw;
 
             in.read((char*)&state.dirs[i][j], sizeof(state.dirs[i][j]));
-            in.read((char*)&state.last_use[i][j], sizeof(state.last_use[i][j]));
+            in.read((char*)&state.lastUse[i][j], sizeof(state.lastUse[i][j]));
 
             for (auto& velocity : state.velocity[i][j]) {
                 in.read((char*)&raw, sizeof(raw));
@@ -105,8 +105,7 @@ void saveFluidSimulationState(ostream& out, const FluidSimulationState& state) {
             out.write((char*)&raw, sizeof(raw));
 
             out.write((char*)&state.dirs[i][j], sizeof(state.dirs[i][j]));
-            out.write((char*)&state.last_use[i][j],
-                      sizeof(state.last_use[i][j]));
+            out.write((char*)&state.lastUse[i][j], sizeof(state.lastUse[i][j]));
 
             for (const auto& velocity : state.velocity[i][j]) {
                 raw = int64_t(velocity.v);

@@ -8,6 +8,15 @@ constexpr unsigned rhoSize = 256;
 constexpr std::array<std::pair<int, int>, 4> deltas{
     {{-1, 0}, {1, 0}, {0, -1}, {0, 1}}};
 
+constexpr size_t getDeltaIndex(int dx, int dy) {
+    for (size_t i = 0; i < deltas.size(); ++i) {
+        if (deltas[i].first == dx && deltas[i].second == dy) {
+            return i;
+        }
+    }
+    return deltas.size();
+}
+
 template <typename T, size_t N, size_t M>
 using StaticMatrix = T[N][M];
 
@@ -27,24 +36,24 @@ struct FluidSimulationState {
     DynamicMatrix<char> field;
     DynamicMatrix<Fixed<>> p;
     DynamicVectorMatrix<Fixed<>> velocity;
-    DynamicMatrix<int> last_use;
+    DynamicMatrix<int> lastUse;
     DynamicMatrix<int> dirs;
     int UT = 0;
     unsigned tickCount = 0;
 
-    FluidSimulationState() = default;
+    explicit FluidSimulationState() = default;
 
-    FluidSimulationState(size_t height, size_t width) {
+    explicit FluidSimulationState(size_t height, size_t width) {
         field.resize(height, std::vector<char>(width));
         p.resize(height, std::vector<Fixed<>>(width));
         dirs.resize(height, std::vector<int>(width, 0));
-        last_use.resize(height, std::vector<int>(width, 0));
+        lastUse.resize(height, std::vector<int>(width, 0));
         velocity.resize(height,
                         std::vector<std::array<Fixed<>, deltas.size()>>(
                             width, std::array<Fixed<>, deltas.size()>()));
     }
 
-    FluidSimulationState(DynamicMatrix<char>&& initialField)
+    explicit FluidSimulationState(DynamicMatrix<char>&& initialField)
         : FluidSimulationState(initialField.size(), initialField.size() > 0
                                                         ? initialField[0].size()
                                                         : 0) {
